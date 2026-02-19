@@ -127,15 +127,24 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
     }, 1200);
   };
 
+  const getRedirectOrigin = (): string => {
+    const envOrigin = import.meta.env.VITE_APP_URL as string | undefined;
+    if (envOrigin) {
+      return envOrigin.replace(/\/$/, '');
+    }
+    return window.location.origin;
+  };
+
   const handleGoogleLogin = async () => {
     setLoading(true);
     setError(null);
     if (supabase) {
       try {
+        const redirectTo = `${getRedirectOrigin()}/`;
         const { error: err } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: `${window.location.origin}/`,
+            redirectTo,
             queryParams: {
               access_type: 'offline',
               prompt: 'consent',
