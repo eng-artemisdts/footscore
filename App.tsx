@@ -73,7 +73,7 @@ const App: React.FC = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (location.pathname === '/view') {
+  if (location.pathname === '/view' || location.pathname.endsWith('/view')) {
     return <ViewOnlyPelada />;
   }
 
