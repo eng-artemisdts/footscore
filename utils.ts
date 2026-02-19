@@ -1,7 +1,36 @@
 
 import { Player, GroupSettings, Position, TeamDraw, Team } from './types';
+import type { SharePayload } from './types';
 
 export const generateId = () => Math.random().toString(36).slice(2, 10);
+
+/** Codifica payload de compartilhamento para o hash da URL */
+export function encodeSharePayload(payload: SharePayload): string {
+  try {
+    return btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  } catch {
+    return '';
+  }
+}
+
+/** Decodifica hash da URL para payload de compartilhamento */
+export function decodeSharePayload(hash: string): SharePayload | null {
+  try {
+    const raw = (hash || '').replace(/^#/, '').trim();
+    if (!raw) return null;
+    const json = decodeURIComponent(escape(atob(raw)));
+    const data = JSON.parse(json) as Record<string, unknown>;
+    if (!data || typeof data.n !== 'string' || !Array.isArray(data.p)) return null;
+    return {
+      n: data.n,
+      p: data.p as SharePayload['p'],
+      d: (data.d ?? null) as SharePayload['d'],
+      t: typeof data.t === 'number' ? data.t : Date.now(),
+    };
+  } catch {
+    return null;
+  }
+}
 
 /** Gera slug para URL a partir do nome da pelada */
 export const peladaSlug = (name: string): string =>

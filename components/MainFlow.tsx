@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Player, TeamDraw, User, Pelada } from '../types';
 import { POSITIONS, TRANSLATIONS } from '../constants';
-import { generateId, drawTeams, recalcOverall } from '../utils';
+import { generateId, drawTeams, recalcOverall, encodeSharePayload } from '../utils';
 import { PlayerCard } from './PlayerCard';
 import { PitchSVG } from './PitchSVG';
 import { RadarChart } from './RadarChart';
@@ -26,9 +26,28 @@ export const MainFlow: React.FC<MainFlowProps> = ({ user, pelada, onLogout }) =>
   const [currentDraw, setCurrentDraw] = useState<TeamDraw | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [shareCopied, setShareCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const t = TRANSLATIONS['pt'] || TRANSLATIONS['en'];
+
+  const handleShare = () => {
+    const payload = {
+      n: pelada.name,
+      p: players,
+      d: currentDraw,
+      t: Date.now(),
+    };
+    const encoded = encodeSharePayload(payload);
+    const url = `${window.location.origin}${window.location.pathname.replace(/\/$/, '')}/view#${encoded}`;
+    navigator.clipboard.writeText(url).then(
+      () => {
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 2500);
+      },
+      () => alert('Não foi possível copiar o link.')
+    );
+  };
 
   useEffect(() => {
     localStorage.setItem(PLAYERS_STORAGE_KEY(pelada.id), JSON.stringify(players));
@@ -180,7 +199,22 @@ export const MainFlow: React.FC<MainFlowProps> = ({ user, pelada, onLogout }) =>
             ))}
           </nav>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <button
+              type="button"
+              onClick={handleShare}
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-cyan-400 hover:border-cyan-500/30 transition-all"
+            >
+              {shareCopied ? (
+                <>
+                  <span className="text-green-400">✓</span> Copiado!
+                </>
+              ) : (
+                <>
+                  <span>🔗</span> Compartilhar
+                </>
+              )}
+            </button>
             <button
               onClick={handleLogout}
               className="hidden sm:flex items-center gap-2 text-[10px] font-black uppercase text-white/20 hover:text-red-500 transition-colors"

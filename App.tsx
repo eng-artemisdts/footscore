@@ -6,6 +6,7 @@ import { supabase } from './supabase';
 import { AuthScreen } from './components/AuthScreen';
 import { PeladaSelectScreen, getPeladas } from './components/PeladaSelectScreen';
 import { MainFlow } from './components/MainFlow';
+import { ViewOnlyPelada } from './components/ViewOnlyPelada';
 
 function supabaseUserToAppUser(supabaseUser: {
   id: string;
@@ -79,16 +80,13 @@ const App: React.FC = () => {
     );
   }
 
-  if (!user) {
-    return <AuthScreen onLogin={setUser} />;
-  }
-
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/pelada" replace />} />
-      <Route path="/pelada" element={<PeladaSelectScreen user={user} />} />
-      <Route path="/pelada/:peladaSlug" element={<PeladaRoute user={user} onLogout={() => { supabase?.auth.signOut(); setUser(null); }} />} />
-      <Route path="*" element={<Navigate to="/pelada" replace />} />
+      <Route path="/view" element={<ViewOnlyPelada />} />
+      <Route path="/" element={user ? <Navigate to="/pelada" replace /> : <AuthScreen onLogin={setUser} />} />
+      <Route path="/pelada" element={user ? <PeladaSelectScreen user={user} /> : <Navigate to="/" replace />} />
+      <Route path="/pelada/:peladaSlug" element={user ? <PeladaRoute user={user} onLogout={() => { supabase?.auth.signOut(); setUser(null); }} /> : <Navigate to="/" replace />} />
+      <Route path="*" element={<Navigate to={user ? '/pelada' : '/'} replace />} />
     </Routes>
   );
 };

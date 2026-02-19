@@ -86,3 +86,11 @@ export interface AppNotification {
   message: string;
   type: 'success' | 'error' | 'info';
 }
+
+/** Payload do link de compartilhamento (visualização somente leitura) */
+export interface SharePayload {
+  n: string;
+  p: Player[];
+  d: TeamDraw | null;
+  t: number;
+}
