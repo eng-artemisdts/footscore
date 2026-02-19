@@ -13,10 +13,6 @@ export const POSITION_COLORS: Record<Position, string> = {
   "ATA": "#ff1744"
 };
 
-/**
- * Coordenadas refinadas para evitar sobreposição e dar profundidade ao campo.
- * Formato: [x, y] onde x é 0-100 e y é 0-100 (dentro da metade do time).
- */
 export const POSITION_PITCH_COORDS: Record<Position, [number, number]> = {
   "GOL": [50, 10],
   "ZAG": [50, 30],

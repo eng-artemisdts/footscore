@@ -59,7 +59,6 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, onClick, isAdmin
       <div className="absolute top-4 right-0 left-0 bottom-[35%] flex justify-center items-end z-20 overflow-visible">
         {player.photoUrl ? (
           <div className="relative h-full flex items-end justify-center">
-            {/* Brilho de fundo suavizado: blur reduzido de 2xl para lg e opacidade de 40 para 20 */}
             <img src={player.photoUrl} alt="" className="absolute h-[110%] w-auto object-contain blur-lg opacity-20 scale-110 pointer-events-none z-10 translate-y-4" />
             <img src={player.photoUrl} alt={player.nick} className="relative z-20 h-[105%] w-auto object-contain drop-shadow-[0_15px_20px_rgba(0,0,0,0.8)] transition-transform duration-700 group-hover:scale-105" />
             <div className="absolute bottom-0 left-0 w-full h-1/4 bg-gradient-to-t from-black/60 to-transparent z-30 pointer-events-none" />

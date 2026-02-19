@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
 import { User } from './types';
 import { peladaSlug } from './utils';
 import { supabase } from './supabase';
@@ -37,6 +37,7 @@ function supabaseUserToAppUser(supabaseUser: {
 }
 
 const App: React.FC = () => {
+  const location = useLocation();
   const [user, setUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('pelada_user');
     return saved ? JSON.parse(saved) : null;
@@ -72,6 +73,10 @@ const App: React.FC = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  if (location.pathname === '/view') {
+    return <ViewOnlyPelada />;
+  }
+
   if (!authChecked) {
     return (
       <div className="min-h-screen bg-[#050810] flex items-center justify-center">
@@ -82,7 +87,6 @@ const App: React.FC = () => {
 
   return (
     <Routes>
-      <Route path="/view" element={<ViewOnlyPelada />} />
       <Route path="/" element={user ? <Navigate to="/pelada" replace /> : <AuthScreen onLogin={setUser} />} />
       <Route path="/pelada" element={user ? <PeladaSelectScreen user={user} /> : <Navigate to="/" replace />} />
       <Route path="/pelada/:peladaSlug" element={user ? <PeladaRoute user={user} onLogout={() => { supabase?.auth.signOut(); setUser(null); }} /> : <Navigate to="/" replace />} />

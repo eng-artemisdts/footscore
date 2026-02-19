@@ -1,0 +1,11 @@
+---
+description: Não adicionar comentários no código
+globs: "**/*.{ts,tsx,js,jsx}"
+alwaysApply: true
+---
+
+# Sem comentários no código
+
+- **Não adicione comentários** no código (nem `//`, nem `/* */`, nem `{/* */}` em JSX).
+- O código deve ser autoexplicativo; use nomes claros de variáveis, funções e arquivos.
+- Ao revisar ou refatorar, remova comentários existentes em vez de adicionar novos.

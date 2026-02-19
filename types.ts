@@ -87,7 +87,6 @@ export interface AppNotification {
   type: 'success' | 'error' | 'info';
 }
 
-/** Payload do link de compartilhamento (visualização somente leitura) */
 export interface SharePayload {
   n: string;
   p: Player[];

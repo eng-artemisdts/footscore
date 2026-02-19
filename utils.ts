@@ -4,7 +4,6 @@ import type { SharePayload } from './types';
 
 export const generateId = () => Math.random().toString(36).slice(2, 10);
 
-/** Codifica payload de compartilhamento para o hash da URL */
 export function encodeSharePayload(payload: SharePayload): string {
   try {
     return btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
@@ -13,7 +12,6 @@ export function encodeSharePayload(payload: SharePayload): string {
   }
 }
 
-/** Decodifica hash da URL para payload de compartilhamento */
 export function decodeSharePayload(hash: string): SharePayload | null {
   try {
     const raw = (hash || '').replace(/^#/, '').trim();
@@ -32,7 +30,6 @@ export function decodeSharePayload(hash: string): SharePayload | null {
   }
 }
 
-/** Gera slug para URL a partir do nome da pelada */
 export const peladaSlug = (name: string): string =>
   name
     .trim()
@@ -43,13 +40,12 @@ export const peladaSlug = (name: string): string =>
     .replace(/[^a-z0-9-]/g, '');
 
 export const getOverallColor = (ovr: number) => {
-  if (ovr >= 80) return '#fbbf24'; // Gold
-  if (ovr >= 60) return '#e5e7eb'; // Silver
-  return '#92400e'; // Bronze
+  if (ovr >= 80) return '#fbbf24';
+  if (ovr >= 60) return '#e5e7eb';
+  return '#92400e';
 };
 
 export const getCardRarity = (ovr: number) => {
-  // OURO (80 - 99) - Premium Gold / Ballon d'Or Style
   if (ovr >= 80) return { 
     bg: 'from-[#1e150a] via-[#5d4718] to-[#1e150a]', 
     border: 'border-yellow-400',
@@ -58,10 +54,9 @@ export const getCardRarity = (ovr: number) => {
     text: 'text-yellow-100',
     ovrText: 'text-white',
     footerBg: 'from-black via-black/80 to-transparent',
-    glow: 'shadow-yellow-500/20' // Reduzido de 50 para 20
+    glow: 'shadow-yellow-500/20'
   };
   
-  // PRATA (60 - 79) - Rare Silver Style
   if (ovr >= 60) return { 
     bg: 'from-[#1a1c22] via-[#4a5061] to-[#1a1c22]', 
     border: 'border-slate-300',
@@ -70,10 +65,9 @@ export const getCardRarity = (ovr: number) => {
     text: 'text-slate-200',
     ovrText: 'text-white',
     footerBg: 'from-black via-black/80 to-transparent',
-    glow: 'shadow-slate-300/15' // Reduzido de 40 para 15
+    glow: 'shadow-slate-300/15'
   };
   
-  // BRONZE (0 - 59) - Common Bronze Style
   return { 
     bg: 'from-[#1a120d] via-[#4a2b1a] to-[#1a120d]', 
     border: 'border-orange-800',
@@ -82,7 +76,7 @@ export const getCardRarity = (ovr: number) => {
     text: 'text-orange-200',
     ovrText: 'text-white',
     footerBg: 'from-black via-black/80 to-transparent',
-    glow: 'shadow-orange-900/15' // Reduzido de 40 para 15
+    glow: 'shadow-orange-900/15'
   };
 };
 

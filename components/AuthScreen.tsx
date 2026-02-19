@@ -37,7 +37,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
       const accounts = getAccounts();
       
       if (mode === 'signup') {
-        // Verificar se e-mail já existe
         if (accounts.some(acc => acc.email === email)) {
           setError('E-mail já cadastrado.');
           setLoading(false);
@@ -74,7 +73,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
           setError('E-mail ou senha incorretos.');
         }
       } else if (mode === 'phone') {
-        // Simulação de login por celular: Se não existe, cria. Se existe, loga.
         let found = accounts.find(acc => acc.phone === phone);
         if (!found) {
           found = {
@@ -155,7 +153,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
           );
           setLoading(false);
         }
-        // Se sucesso, o usuário será redirecionado; onAuthStateChange no App fará o login
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Erro ao conectar com Google.';
         const isProviderDisabled = typeof msg === 'string' && (msg.includes('not enabled') || msg.includes('validation_failed'));
@@ -173,7 +170,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
 
   return (
     <div className="min-h-screen bg-[#050810] flex items-center justify-center p-4 overflow-hidden relative font-normal">
-      {/* Background Decorativo */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         <div className="absolute top-[-20%] left-[-10%] w-[60%] aspect-square bg-cyan-600/10 blur-[150px] rounded-full" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[60%] aspect-square bg-blue-600/10 blur-[150px] rounded-full" />

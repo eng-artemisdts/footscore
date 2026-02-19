@@ -48,14 +48,12 @@ export const PeladaSelectScreen: React.FC<PeladaSelectScreenProps> = ({ user }) 
 
   return (
     <div className="min-h-screen bg-[#050810] flex items-center justify-center p-4 overflow-hidden relative font-normal">
-      {/* Background decorativo - mesmo estilo do AuthScreen */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         <div className="absolute top-[-20%] left-[-10%] w-[60%] aspect-square bg-cyan-600/10 blur-[150px] rounded-full" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[60%] aspect-square bg-blue-600/10 blur-[150px] rounded-full" />
       </div>
 
       <div className="w-full max-w-lg relative z-10 animate-in zoom-in-95 duration-500">
-        {/* Header: logo + saudação + título */}
         <div className="flex flex-col items-center mb-6 sm:mb-8">
           <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-cyan-500/20 mb-4 group hover:scale-105 transition-transform duration-300">
             <span className="font-black text-3xl sm:text-4xl text-black">F</span>
