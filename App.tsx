@@ -7,16 +7,30 @@ import { AuthScreen } from './components/AuthScreen';
 import { PeladaSelectScreen, getPeladas } from './components/PeladaSelectScreen';
 import { MainFlow } from './components/MainFlow';
 
-function supabaseUserToAppUser(supabaseUser: { id: string; email?: string; user_metadata?: { full_name?: string; name?: string } }): User {
-  const name =
-    supabaseUser.user_metadata?.full_name ||
-    supabaseUser.user_metadata?.name ||
-    supabaseUser.email?.split('@')[0] ||
-    'Usuário';
+function supabaseUserToAppUser(supabaseUser: {
+  id: string;
+  email?: string;
+  user_metadata?: {
+    full_name?: string;
+    name?: string;
+    given_name?: string;
+    family_name?: string;
+  };
+}): User {
+  const meta = supabaseUser.user_metadata ?? {};
+  const full =
+    meta.full_name ||
+    meta.name ||
+    [meta.given_name, meta.family_name].filter(Boolean).join(' ').trim();
+  const fromEmail = (supabaseUser.email?.split('@')[0] ?? '').trim();
+  const fromEmailDisplay = fromEmail ? fromEmail[0].toUpperCase() + fromEmail.slice(1).toLowerCase() : '';
+  const raw = (full || fromEmailDisplay || 'Usuário').trim();
+  const isProviderName = /^google$/i.test(raw);
+  const name = isProviderName ? (fromEmailDisplay || 'Usuário') : (raw || 'Usuário');
   return {
     id: supabaseUser.id,
     email: supabaseUser.email ?? '',
-    name: name.trim() || 'Usuário',
+    name,
     role: 'ADMIN',
   };
 }
