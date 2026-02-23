@@ -6,6 +6,8 @@ import { env } from "@/shared/env";
 import { shortenUrl } from "@/modules/share/shortio";
 import { coerceAttributesForSport, getSportSchema } from "@/shared/sportSchemas";
 import { useToast } from "@/shared/ui/ToastProvider";
+import { uploadPlayerPhoto } from "@/modules/peladas/uploadPlayerPhoto";
+import { deletePlayerPhoto } from "@/modules/peladas/deletePlayerPhoto";
 
 type MainFlowTab = "dashboard" | "players" | "events" | "draw";
 
@@ -31,6 +33,7 @@ type PeladaPlayerRow = {
 interface MainFlowState {
   peladaId: string | null;
   players: Player[];
+  playersLoading: boolean;
   activeTab: MainFlowTab;
   selectedPlayer: Player | null;
   currentDraw: TeamDraw | null;
@@ -42,6 +45,7 @@ interface MainFlowState {
 
 type MainFlowAction =
   | { type: "INIT"; peladaId: string; players: Player[] }
+  | { type: "SET_PLAYERS_LOADING"; value: boolean }
   | { type: "SET_ACTIVE_TAB"; tab: MainFlowTab }
   | { type: "SET_SELECTED_PLAYER"; player: Player | null }
   | { type: "SET_CURRENT_DRAW"; draw: TeamDraw | null }
@@ -60,6 +64,7 @@ type MainFlowAction =
 const initialState: MainFlowState = {
   peladaId: null,
   players: [],
+  playersLoading: false,
   activeTab: "dashboard",
   selectedPlayer: null,
   currentDraw: null,
@@ -75,6 +80,7 @@ function reducer(state: MainFlowState, action: MainFlowAction): MainFlowState {
       return {
         peladaId: action.peladaId,
         players: action.players,
+        playersLoading: false,
         activeTab: "dashboard",
         selectedPlayer: null,
         currentDraw: null,
@@ -83,6 +89,8 @@ function reducer(state: MainFlowState, action: MainFlowAction): MainFlowState {
         shareCopied: false,
         shareLoading: false,
       };
+    case "SET_PLAYERS_LOADING":
+      return { ...state, playersLoading: action.value };
     case "SET_ACTIVE_TAB":
       return { ...state, activeTab: action.tab };
     case "SET_SELECTED_PLAYER":
@@ -268,6 +276,8 @@ export function useMainFlow(params: { pelada: Pelada | null; isAdmin: boolean })
     if (!pelada) return;
     if (state.peladaId === pelada.id) return;
 
+    dispatch({ type: "SET_PLAYERS_LOADING", value: true });
+
     let cancelled = false;
     const sport = pelada.sport;
     const localPlayers = loadLocalPlayers(pelada.id).map((p) => {
@@ -358,6 +368,11 @@ export function useMainFlow(params: { pelada: Pelada | null; isAdmin: boolean })
         )
       : 0;
   }, [state.players]);
+
+  const playersLoading = useMemo(() => {
+    if (!pelada) return false;
+    return state.playersLoading || state.peladaId !== pelada.id;
+  }, [pelada, state.peladaId, state.playersLoading]);
 
   const getAccessToken = async (): Promise<string | null> => {
     if (!supabase) return null;
@@ -501,19 +516,34 @@ export function useMainFlow(params: { pelada: Pelada | null; isAdmin: boolean })
   const handlePhotoUpload = (file: File | null | undefined) => {
     if (!isAdmin) return;
     if (!file || !state.selectedPlayer) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
-      setPlayers((prev) =>
-        prev.map((p) => {
-          if (p.id !== state.selectedPlayer!.id) return p;
-          const updated = { ...p, photoUrl: base64String };
-          setSelectedPlayer(updated);
-          return updated;
-        }),
-      );
-    };
-    reader.readAsDataURL(file);
+    if (!pelada) return;
+
+    const current = state.selectedPlayer;
+
+    void (async () => {
+      try {
+        const token = await getAccessToken();
+        if (!token) {
+          toast.error("Sessão expirada. Saia e entre novamente.", { title: "Falha no upload" });
+          return;
+        }
+
+        const url = await uploadPlayerPhoto({
+          peladaId: pelada.id,
+          playerId: current.id,
+          file,
+          accessToken: token,
+        });
+
+        const updated = { ...current, photoUrl: url };
+        setSelectedPlayer(updated);
+        setPlayers((prev) => prev.map((p) => (p.id === current.id ? updated : p)));
+
+        await upsertPlayerToRemote(pelada.id, updated);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Não foi possível fazer upload da foto.", { title: "Falha no upload" });
+      }
+    })();
   };
 
   const handlePhotoLink = (url: string) => {
@@ -527,6 +557,32 @@ export function useMainFlow(params: { pelada: Pelada | null; isAdmin: boolean })
         return updated;
       }),
     );
+  };
+
+  const handleRemovePhoto = () => {
+    if (!isAdmin) return;
+    if (!state.selectedPlayer) return;
+    if (!pelada) return;
+    if (!state.selectedPlayer.photoUrl) return;
+
+    const current = state.selectedPlayer;
+    void (async () => {
+      try {
+        const token = await getAccessToken();
+        if (!token) {
+          toast.error("Sessão expirada. Saia e entre novamente.", { title: "Falha ao remover" });
+          return;
+        }
+
+        await deletePlayerPhoto({ peladaId: pelada.id, playerId: current.id, accessToken: token });
+        const updated = { ...current, photoUrl: null };
+        setSelectedPlayer(updated);
+        setPlayers((prev) => prev.map((p) => (p.id === current.id ? updated : p)));
+        await upsertPlayerToRemote(pelada.id, updated);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Não foi possível remover a foto.", { title: "Falha ao remover" });
+      }
+    })();
   };
 
   const executeRemovePlayer = () => {
@@ -583,6 +639,7 @@ export function useMainFlow(params: { pelada: Pelada | null; isAdmin: boolean })
 
   return {
     players: state.players,
+    playersLoading,
     setPlayers,
     activeTab: state.activeTab,
     setActiveTab,
@@ -605,6 +662,7 @@ export function useMainFlow(params: { pelada: Pelada | null; isAdmin: boolean })
     updatePlayerAttribute,
     handlePhotoUpload,
     handlePhotoLink,
+    handleRemovePhoto,
     executeRemovePlayer,
     closeSelectedPlayer,
     updateSelectedPlayer,

@@ -3,7 +3,7 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 import { POSITIONS, TRANSLATIONS } from '@/shared/constants';
 import { peladaSlug } from '@/shared/utils';
 import { PitchSVG } from '@/shared/ui/PitchSVG';
-import { PlayerCard } from '@/shared/ui/PlayerCard';
+import { PlayerCard, PlayerCardSkeleton } from '@/shared/ui/PlayerCard';
 import { RadarChart } from '@/shared/ui/RadarChart';
 import { useAuthStore } from '@/modules/auth/authStore';
 import { usePeladas } from '@/pages/peladaSelect/hooks/usePeladasStorage';
@@ -26,6 +26,7 @@ export const PeladaPage: React.FC = () => {
 
   const {
     players,
+    playersLoading,
     setPlayers,
     activeTab,
     setActiveTab,
@@ -48,6 +49,7 @@ export const PeladaPage: React.FC = () => {
     updatePlayerAttribute,
     handlePhotoUpload,
     handlePhotoLink,
+    handleRemovePhoto,
     executeRemovePlayer,
     closeSelectedPlayer,
     updateSelectedPlayer,
@@ -84,9 +86,12 @@ export const PeladaPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-3">
             <Link to="/pelada" className="flex items-center gap-2 sm:gap-3 cursor-pointer" title="Trocar pelada">
-              <div className="w-8 h-8 sm:w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20">
-                <span className="font-black text-lg sm:text-2xl text-black">F</span>
-              </div>
+              <img
+                src="/logo.svg"
+                alt={t['app.name']}
+                className="w-8 h-8 sm:w-10 h-10 rounded-lg sm:rounded-xl shadow-lg shadow-cyan-500/20"
+                draggable={false}
+              />
               <div className="hidden xs:block">
                 <h1 className="text-xl sm:text-2xl font-black tracking-tighter uppercase">{t['app.name']}</h1>
                 <p className="text-[8px] sm:text-[9px] font-bold text-white/40 uppercase tracking-widest truncate max-w-[140px] sm:max-w-[200px]">{pelada.name}</p>
@@ -239,7 +244,13 @@ export const PeladaPage: React.FC = () => {
               )}
             </div>
 
-            {filteredPlayers.length > 0 ? (
+            {playersLoading ? (
+              <div className="grid grid-cols-2 xs:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 sm:gap-6">
+                {Array.from({ length: 12 }).map((_, idx) => (
+                  <PlayerCardSkeleton key={idx} index={idx} statsCount={sportSchema.attributeKeys.length} />
+                ))}
+              </div>
+            ) : filteredPlayers.length > 0 ? (
               <div className="grid grid-cols-2 xs:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 sm:gap-6">
                 {filteredPlayers.map(p => (
                   <PlayerCard
@@ -394,6 +405,14 @@ export const PeladaPage: React.FC = () => {
                   >
                     <span>📷</span> {t['photo.upload']}
                   </button>
+                  {selectedPlayer.photoUrl && (
+                    <button
+                      onClick={handleRemovePhoto}
+                      className="w-full py-3.5 sm:py-4 bg-red-500/10 border border-red-500/20 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-red-400 hover:bg-red-500 hover:text-black transition-all flex items-center justify-center gap-2 sm:gap-3"
+                    >
+                      <span>🗑️</span> Remover foto
+                    </button>
+                  )}
                   <div className="relative">
                     <input
                       type="text"

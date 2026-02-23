@@ -33,11 +33,24 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, onClick, isAdmin
       onClick={onClick}
       className={`group relative w-full aspect-[3/4] rounded-[10%] cursor-pointer transform transition-all duration-500 hover:scale-110 hover:-translate-y-2 select-none overflow-hidden border-2 ${rarity.border}/50 shadow-2xl ${rarity.glow}`}
     >
-      <div className={`absolute inset-0 bg-gradient-to-br ${rarity.bg}`} />
-      <div className="absolute inset-0 opacity-40 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] mix-blend-overlay" />
-      <div className="absolute inset-0 w-full h-full bg-gradient-to-tr from-black/40 via-white/10 to-transparent pointer-events-none" />
-      <div className={`absolute inset-0 border-[8px] ${rarity.ornament} pointer-events-none rounded-[8%]`} />
-      <div className={`absolute inset-2 border ${rarity.innerOrnament} pointer-events-none rounded-[7%]`} />
+      <div className={`absolute inset-0 z-0 bg-gradient-to-br ${rarity.bg}`} />
+
+      {player.photoUrl ? (
+        <img
+          src={player.photoUrl}
+          alt={player.nick}
+          className="absolute inset-0 z-10 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+        />
+      ) : (
+        <div className={`absolute inset-0 z-10 flex items-center justify-center text-[140px] font-black ${rarity.text} opacity-20 select-none uppercase`}>
+          {player.nick.charAt(0)}
+        </div>
+      )}
+
+      <div className="absolute inset-0 z-20 opacity-40 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] mix-blend-overlay" />
+      <div className="absolute inset-0 z-20 w-full h-full bg-gradient-to-tr from-black/40 via-white/10 to-transparent pointer-events-none" />
+      <div className={`absolute inset-0 z-30 border-[8px] ${rarity.ornament} pointer-events-none rounded-[8%]`} />
+      <div className={`absolute inset-2 z-30 border ${rarity.innerOrnament} pointer-events-none rounded-[7%]`} />
 
       <div className="absolute top-6 left-6 z-40 flex flex-col items-start leading-none drop-shadow-[0_2px_5px_rgba(0,0,0,1)]">
         <span className={`font-black text-5xl ${rarity.ovrText} tracking-tighter`}>
@@ -53,20 +66,6 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, onClick, isAdmin
             <path d="M7 8L9 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className={rarity.text}/>
           </svg>
         </div>
-      </div>
-
-      <div className="absolute top-4 right-0 left-0 bottom-[35%] flex justify-center items-end z-20 overflow-visible">
-        {player.photoUrl ? (
-          <div className="relative h-full flex items-end justify-center">
-            <img src={player.photoUrl} alt="" className="absolute h-[110%] w-auto object-contain blur-lg opacity-20 scale-110 pointer-events-none z-10 translate-y-4" />
-            <img src={player.photoUrl} alt={player.nick} className="relative z-20 h-[105%] w-auto object-contain drop-shadow-[0_15px_20px_rgba(0,0,0,0.8)] transition-transform duration-700 group-hover:scale-105" />
-            <div className="absolute bottom-0 left-0 w-full h-1/4 bg-gradient-to-t from-black/60 to-transparent z-30 pointer-events-none" />
-          </div>
-        ) : (
-          <div className={`text-[120px] font-black ${rarity.text} opacity-20 select-none pb-8 uppercase`}>
-            {player.nick.charAt(0)}
-          </div>
-        )}
       </div>
 
       <div className={`absolute bottom-0 left-0 w-full h-[38%] z-30 flex flex-col items-center bg-gradient-to-t ${rarity.footerBg}`}>
@@ -106,6 +105,61 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, onClick, isAdmin
         )}
       </div>
       <div className="absolute bottom-0 left-0 w-full h-1.5 opacity-100 shadow-[0_-2px_5px_rgba(0,0,0,0.5)] z-40" style={{ backgroundColor: posColor }} />
+    </div>
+  );
+};
+
+export const PlayerCardSkeleton: React.FC<{ statsCount?: number; index?: number }> = ({
+  statsCount = 6,
+  index = 0,
+}) => {
+  const delayMs = (index % 8) * 60;
+  const cols = Math.max(3, Math.min(8, statsCount));
+
+  return (
+    <div
+      className="group relative w-full aspect-[3/4] rounded-[10%] select-none overflow-hidden border-2 border-white/10 bg-white/[0.03] shadow-2xl transition-all duration-500 hover:scale-110 hover:-translate-y-2 active:scale-[1.02] animate-pulse"
+      style={{ animationDelay: `${delayMs}ms` }}
+      role="status"
+      aria-label="Carregando jogador"
+    >
+      <div className="absolute inset-0 bg-gradient-to-br from-white/[0.06] via-transparent to-black/40" />
+      <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_30%_20%,rgba(34,211,238,0.25),transparent_55%)]" />
+      <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] mix-blend-overlay" />
+
+      <div className="absolute -inset-x-16 inset-y-0 bg-gradient-to-r from-transparent via-white/10 to-transparent rotate-12 translate-x-[-120%] group-hover:translate-x-[120%] transition-transform duration-700" />
+
+      <div className="absolute top-6 left-6 z-10 flex flex-col items-start gap-2">
+        <div className="h-12 w-16 rounded-xl bg-white/10 border border-white/10" />
+        <div className="h-6 w-12 rounded-lg bg-white/10 border border-white/10" />
+        <div className="h-3 w-10 rounded-md bg-white/10 border border-white/10" />
+      </div>
+
+      <div className="absolute bottom-0 left-0 w-full h-[38%] z-10 bg-gradient-to-t from-black/70 via-black/40 to-transparent">
+        <div className="w-full flex justify-center py-2 mb-1">
+          <div className="h-6 w-[70%] rounded-xl bg-white/10 border border-white/10" />
+        </div>
+
+        <div
+          className="grid w-full px-4 gap-0 mb-4"
+          style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+        >
+          {Array.from({ length: cols }).map((_, i) => (
+            <div key={i} className="flex flex-col items-center border-r last:border-r-0 border-white/10">
+              <div className="h-3 w-7 rounded-md bg-white/10 border border-white/10" />
+              <div className="mt-1 h-5 w-8 rounded-lg bg-white/10 border border-white/10" />
+            </div>
+          ))}
+        </div>
+
+        <div className="flex gap-4 items-center justify-center opacity-90 mb-4">
+          <div className="w-7 h-5 rounded-sm bg-white/10 border border-white/10 shadow-md" />
+          <div className="w-7 h-7 rounded-full bg-white/10 border border-white/10" />
+          <div className="w-7 h-7 rounded-full bg-white/10 border border-white/10" />
+        </div>
+      </div>
+
+      <div className="absolute bottom-0 left-0 w-full h-1.5 opacity-80 z-20 bg-gradient-to-r from-cyan-500/30 via-blue-500/40 to-cyan-500/30" />
     </div>
   );
 };

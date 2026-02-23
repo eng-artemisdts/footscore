@@ -10,6 +10,7 @@ import { joinPelada } from "@/modules/peladas/joinPelada";
 import { CreatePeladaModal } from "./components/CreatePeladaModal";
 import { savePelada, usePeladas } from "./hooks/usePeladasStorage";
 import { useToast } from "@/shared/ui/ToastProvider";
+import { useConfirm } from "@/shared/ui/ConfirmProvider";
 
 const PENDING_PELADA_JOIN_KEY = "pending_pelada_join";
 
@@ -18,6 +19,7 @@ export const PeladaSelectPage: React.FC = () => {
   const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
   const toast = useToast();
+  const confirm = useConfirm();
   const [showModal, setShowModal] = useState(false);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
   const [upgradeError, setUpgradeError] = useState<string | null>(null);
@@ -75,7 +77,12 @@ export const PeladaSelectPage: React.FC = () => {
     }
 
     const run = async () => {
-      const ok = confirm(`Deseja entrar na pelada "${peladaName}"?`);
+      const ok = await confirm({
+        title: "Entrar na pelada",
+        message: `Deseja entrar na pelada "${peladaName}"?`,
+        confirmText: "Entrar",
+        cancelText: "Cancelar",
+      });
       if (!ok) {
         try {
           localStorage.removeItem(PENDING_PELADA_JOIN_KEY);
@@ -98,7 +105,7 @@ export const PeladaSelectPage: React.FC = () => {
     };
 
     void run();
-  }, [navigate, toast, user?.id]);
+  }, [confirm, navigate, toast, user?.id]);
 
   const { peladas, loading: peladasLoading } = usePeladas(user.id, showModal);
   const isPro = user.plan === "pro";
@@ -211,11 +218,12 @@ export const PeladaSelectPage: React.FC = () => {
 
       <div className="w-full max-w-lg relative z-10 animate-in zoom-in-95 duration-500">
         <div className="flex flex-col items-center mb-6 sm:mb-8">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-cyan-500/20 mb-4 group hover:scale-105 transition-transform duration-300">
-            <span className="font-black text-3xl sm:text-4xl text-black">
-              F
-            </span>
-          </div>
+          <img
+            src="/logo.svg"
+            alt="FutScore"
+            className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl shadow-2xl shadow-cyan-500/20 mb-4 hover:scale-105 transition-transform duration-300"
+            draggable={false}
+          />
           <p className="text-[10px] font-bold text-cyan-400/90 uppercase tracking-[0.25em] mb-3">
             Olá, {firstName}
           </p>
