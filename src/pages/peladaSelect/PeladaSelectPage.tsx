@@ -6,8 +6,11 @@ import { useAuthStore } from "@/modules/auth/authStore";
 import { createCheckoutSession, createPortalSession } from "@/modules/billing/stripe";
 import { supabase } from "@/shared/supabase";
 import { env } from "@/shared/env";
+import { joinPelada } from "@/modules/peladas/joinPelada";
 import { CreatePeladaModal } from "./components/CreatePeladaModal";
 import { savePelada, usePeladas } from "./hooks/usePeladasStorage";
+
+const PENDING_PELADA_JOIN_KEY = "pending_pelada_join";
 
 export const PeladaSelectPage: React.FC = () => {
   const user = useAuthStore((state) => state.user);
@@ -28,11 +31,76 @@ export const PeladaSelectPage: React.FC = () => {
     };
   }, []);
 
-  const peladas = usePeladas(user.id, showModal);
+  const joinHandledRef = useRef(false);
+  useEffect(() => {
+    if (!user?.id) return;
+    if (joinHandledRef.current) return;
+    joinHandledRef.current = true;
+
+    const raw = (() => {
+      try {
+        return localStorage.getItem(PENDING_PELADA_JOIN_KEY);
+      } catch {
+        return null;
+      }
+    })();
+    if (!raw) return;
+
+    const parsed = (() => {
+      try {
+        return JSON.parse(raw) as {
+          peladaId?: string;
+          peladaName?: string;
+          slug?: string | null;
+          createdAt?: number;
+        };
+      } catch {
+        return null;
+      }
+    })();
+
+    const peladaId = (parsed?.peladaId ?? "").trim();
+    const peladaName = (parsed?.peladaName ?? "").trim();
+    const slug = (parsed?.slug ?? "").trim();
+    const createdAt = typeof parsed?.createdAt === "number" ? parsed!.createdAt : 0;
+    const expired = !createdAt || Date.now() - createdAt > 1000 * 60 * 60 * 12;
+
+    if (!peladaId || !peladaName || expired) {
+      try {
+        localStorage.removeItem(PENDING_PELADA_JOIN_KEY);
+      } catch {}
+      return;
+    }
+
+    const run = async () => {
+      const ok = confirm(`Deseja entrar na pelada "${peladaName}"?`);
+      if (!ok) {
+        try {
+          localStorage.removeItem(PENDING_PELADA_JOIN_KEY);
+        } catch {}
+        return;
+      }
+
+      try {
+        await joinPelada(peladaId, user.id);
+        try {
+          localStorage.removeItem(PENDING_PELADA_JOIN_KEY);
+        } catch {}
+        const targetSlug = slug || peladaSlug(peladaName);
+        navigate(`/pelada/${targetSlug}`, { replace: true });
+      } catch (e) {
+        alert(e instanceof Error ? e.message : "Não foi possível entrar na pelada.");
+      }
+    };
+
+    void run();
+  }, [navigate, user?.id]);
+
+  const { peladas, loading: peladasLoading } = usePeladas(user.id, showModal);
   const isPro = user.plan === "pro";
 
-  const handleCreate = (pelada: Pelada) => {
-    savePelada(user.id, pelada);
+  const handleCreate = async (pelada: Pelada) => {
+    await savePelada(user.id, pelada);
     setShowModal(false);
     navigate(`/pelada/${peladaSlug(pelada.name)}`, { replace: true });
   };
@@ -195,7 +263,14 @@ export const PeladaSelectPage: React.FC = () => {
               )}
             </div>
           )}
-          {peladas.length === 0 ? (
+          {peladasLoading && peladas.length === 0 ? (
+            <div className="py-12 sm:py-16 text-center border-2 border-dashed border-white/10 rounded-3xl mb-6 bg-black/20">
+              <p className="text-[10px] font-black text-white/50 uppercase tracking-widest mb-3">
+                Carregando peladas...
+              </p>
+              <div className="w-5 h-5 mx-auto border-2 border-white/15 border-t-white/60 rounded-full animate-spin" />
+            </div>
+          ) : peladas.length === 0 ? (
             <div className="py-12 sm:py-16 text-center border-2 border-dashed border-white/10 rounded-3xl mb-6 bg-black/20">
               <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/5 flex items-center justify-center text-4xl">
                 ⚽

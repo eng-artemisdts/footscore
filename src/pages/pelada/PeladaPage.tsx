@@ -6,25 +6,19 @@ import { PitchSVG } from '@/shared/ui/PitchSVG';
 import { PlayerCard } from '@/shared/ui/PlayerCard';
 import { RadarChart } from '@/shared/ui/RadarChart';
 import { useAuthStore } from '@/modules/auth/authStore';
-import { getPeladas } from '@/pages/peladaSelect/hooks/usePeladasStorage';
+import { usePeladas } from '@/pages/peladaSelect/hooks/usePeladasStorage';
 import { useMainFlow } from './hooks/useMainFlow';
 
 export const PeladaPage: React.FC = () => {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
   const { peladaSlug: slugParam } = useParams<{ peladaSlug: string }>();
-
-  if (!user) return <Navigate to="/" replace />;
-
-  const peladas = getPeladas(user.id);
+  const { peladas, loading: peladasLoading } = usePeladas(user?.id ?? "", slugParam);
   const found = slugParam ? peladas.find((p) => peladaSlug(p.name) === slugParam) : undefined;
   const pelada = found || null;
-
-  if (!pelada) {
-    return <Navigate to="/pelada" replace />;
-  }
-
-  const isAdmin = useAuthStore((state) => state.isAdminForPelada(pelada.userId));
+  const isAdmin = useAuthStore((state) =>
+    pelada?.userId ? state.isAdminForPelada(pelada.userId) : false,
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const t = TRANSLATIONS['pt'] || TRANSLATIONS['en'];
 
@@ -46,6 +40,7 @@ export const PeladaPage: React.FC = () => {
     filteredPlayers,
     avgOverall,
     handleShare,
+    shareLoading,
     handleAddPlayer,
     handleDraw,
     updatePlayerAttribute,
@@ -54,6 +49,23 @@ export const PeladaPage: React.FC = () => {
     executeRemovePlayer,
     updateSelectedPlayer,
   } = useMainFlow({ pelada, isAdmin });
+
+  if (!user) return <Navigate to="/" replace />;
+
+  if (peladasLoading && !pelada) {
+    return (
+      <div className="min-h-screen bg-[#050810] flex items-center justify-center p-4 text-white font-normal">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-6 h-6 border-2 border-white/15 border-t-white/60 rounded-full animate-spin" />
+          <p className="text-[10px] font-black text-white/50 uppercase tracking-widest">Carregando pelada...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!pelada) {
+    return <Navigate to="/pelada" replace />;
+  }
 
   const handleLogout = () => {
     logout();
@@ -99,9 +111,15 @@ export const PeladaPage: React.FC = () => {
             <button
               type="button"
               onClick={handleShare}
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-cyan-400 hover:border-cyan-500/30 transition-all"
+              disabled={shareLoading}
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-cyan-400 hover:border-cyan-500/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {shareCopied ? (
+              {shareLoading ? (
+                <>
+                  <span className="w-3 h-3 border-2 border-white/20 border-t-white/70 rounded-full animate-spin" />
+                  Gerando...
+                </>
+              ) : shareCopied ? (
                 <>
                   <span className="text-green-400">✓</span> Copiado!
                 </>

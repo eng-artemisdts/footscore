@@ -1,38 +1,58 @@
-import React, { useState } from 'react';
-import { Pelada } from '@/shared/types';
-import { generateId } from '@/shared/utils';
+import React, { useState } from "react";
+import { Pelada } from "@/shared/types";
+import { generateId } from "@/shared/utils";
 
 interface CreatePeladaModalProps {
   onClose: () => void;
-  onCreate: (pelada: Pelada) => void;
+  onCreate: (pelada: Pelada) => Promise<void>;
   userId: string;
 }
 
-export const CreatePeladaModal: React.FC<CreatePeladaModalProps> = ({ onClose, onCreate, userId }) => {
-  const [name, setName] = useState('');
+export const CreatePeladaModal: React.FC<CreatePeladaModalProps> = ({
+  onClose,
+  onCreate,
+  userId,
+}) => {
+  const [name, setName] = useState("");
+  const [sportId, setSportId] = useState<"FUTEBOL">("FUTEBOL");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const sportOptions = [
+    { id: "FUTEBOL" as const, label: "Futebol", icon: "⚽", enabled: true },
+    { id: "FUTSAL" as const, label: "Futsal", icon: "🥅", enabled: false },
+    { id: "VOLEI" as const, label: "Vôlei", icon: "🏐", enabled: false },
+  ];
+
+  const createPeladaId = () => {
+    const maybeUuid = globalThis.crypto?.randomUUID?.();
+    return maybeUuid || generateId();
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) {
-      setError('Digite um nome para a pelada.');
+      setError("Digite um nome para a pelada.");
       return;
     }
     setLoading(true);
     setError(null);
-    setTimeout(() => {
+    try {
       const pelada: Pelada = {
-        id: generateId(),
+        id: createPeladaId(),
         name: trimmed,
+        sport: sportId,
         userId,
         createdAt: new Date().toISOString(),
       };
-      onCreate(pelada);
-      setLoading(false);
+      await onCreate(pelada);
       onClose();
-    }, 400);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao criar pelada.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -65,6 +85,42 @@ export const CreatePeladaModal: React.FC<CreatePeladaModalProps> = ({ onClose, o
           )}
           <div className="space-y-2">
             <label className="text-[9px] font-black text-white/20 uppercase tracking-widest ml-1">
+              Esporte
+            </label>
+            <div className="grid grid-cols-3 gap-3">
+              {sportOptions.map((opt) => {
+                const selected = sportId === "FUTEBOL" && opt.id === "FUTEBOL";
+                const disabled = !opt.enabled;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    disabled={disabled || loading}
+                    onClick={() => {
+                      if (!opt.enabled) return;
+                      setSportId("FUTEBOL");
+                      setError(null);
+                    }}
+                    className={[
+                      "py-4 rounded-2xl border transition-all active:scale-[0.99] flex flex-col items-center justify-center gap-1",
+                      disabled || loading
+                        ? "bg-black/30 border-white/5 text-white/25 cursor-not-allowed opacity-60"
+                        : selected
+                          ? "bg-cyan-500/20 border-cyan-500/30 text-white"
+                          : "bg-black/40 border-white/5 text-white/60 hover:bg-white/5 hover:text-white",
+                    ].join(" ")}
+                  >
+                    <span className="text-2xl leading-none">{opt.icon}</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest">
+                      {opt.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-[9px] font-black text-white/20 uppercase tracking-widest ml-1">
               Nome da pelada
             </label>
             <input
@@ -95,7 +151,7 @@ export const CreatePeladaModal: React.FC<CreatePeladaModalProps> = ({ onClose, o
               {loading ? (
                 <span className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
               ) : (
-                'Criar pelada'
+                "Criar pelada"
               )}
             </button>
           </div>
@@ -104,4 +160,3 @@ export const CreatePeladaModal: React.FC<CreatePeladaModalProps> = ({ onClose, o
     </div>
   );
 };
-

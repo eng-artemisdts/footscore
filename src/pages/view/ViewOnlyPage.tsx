@@ -1,12 +1,15 @@
-import React, { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { TeamDraw, Player } from '@/shared/types';
 import { TRANSLATIONS } from '@/shared/constants';
-import { decodeSharePayload } from '@/shared/utils';
+import { decodeSharePayload, peladaSlug } from '@/shared/utils';
 import { PitchSVG } from '@/shared/ui/PitchSVG';
 import { PlayerCard } from '@/shared/ui/PlayerCard';
+import { useAuthStore } from '@/modules/auth/authStore';
+import { joinPelada } from '@/modules/peladas/joinPelada';
 
 interface ViewData {
+  peladaId: string | null;
   peladaName: string;
   players: Player[];
   draw: TeamDraw | null;
@@ -18,6 +21,7 @@ function getInitialViewData(): ViewData | null {
   const payload = decodeSharePayload(window.location.hash || '');
   if (!payload) return null;
   return {
+    peladaId: payload.i?.trim() ? payload.i.trim() : null,
     peladaName: payload.n,
     players: payload.p,
     draw: payload.d ?? null,
@@ -25,11 +29,61 @@ function getInitialViewData(): ViewData | null {
   };
 }
 
+const PENDING_PELADA_JOIN_KEY = 'pending_pelada_join';
+
 export const ViewOnlyPage: React.FC = () => {
+  const user = useAuthStore((s) => s.user);
+  const navigate = useNavigate();
+  const location = useLocation();
   const [data] = useState<ViewData | null>(getInitialViewData);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'players' | 'draw'>('dashboard');
+  const joinPromptedRef = useRef(false);
 
   const t = TRANSLATIONS['pt'] || TRANSLATIONS['en'];
+
+  const slugFromPath = useMemo(() => {
+    const match = location.pathname.match(/\/pelada\/([^/]+)\/view\/?$/);
+    return match?.[1]?.trim() || null;
+  }, [location.pathname]);
+
+  const storePendingJoin = () => {
+    if (!data?.peladaId) return;
+    try {
+      localStorage.setItem(
+        PENDING_PELADA_JOIN_KEY,
+        JSON.stringify({
+          peladaId: data.peladaId,
+          peladaName: data.peladaName,
+          slug: slugFromPath,
+          createdAt: Date.now(),
+        }),
+      );
+    } catch {}
+  };
+
+  useEffect(() => {
+    if (!user?.id) return;
+    if (!data?.peladaId) return;
+    if (joinPromptedRef.current) return;
+    joinPromptedRef.current = true;
+
+    const run = async () => {
+      const ok = confirm(`Deseja entrar na pelada "${data.peladaName}"?`);
+      if (!ok) return;
+      try {
+        await joinPelada(data.peladaId!, user.id);
+        try {
+          localStorage.removeItem(PENDING_PELADA_JOIN_KEY);
+        } catch {}
+        const targetSlug = slugFromPath || peladaSlug(data.peladaName);
+        navigate(`/pelada/${targetSlug}`, { replace: true });
+      } catch (e) {
+        alert(e instanceof Error ? e.message : 'Não foi possível entrar na pelada.');
+      }
+    };
+
+    void run();
+  }, [data?.peladaId, data?.peladaName, navigate, slugFromPath, user?.id]);
 
   const topPlayers = useMemo(() => {
     if (!data?.players.length) return [];
@@ -97,6 +151,7 @@ export const ViewOnlyPage: React.FC = () => {
 
           <Link
             to="/"
+            onClick={storePendingJoin}
             className="text-[10px] font-black uppercase text-white/30 hover:text-cyan-400 transition"
           >
             Entrar no app
