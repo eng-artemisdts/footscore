@@ -15,3 +15,4 @@ export const supabase: SupabaseClient | null =
     : null;
 
 export const isSupabaseConfigured = (): boolean => !!supabase;
+

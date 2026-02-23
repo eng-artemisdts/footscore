@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Pelada } from '../types';
-import { generateId } from '../utils';
+import { Pelada } from '@/shared/types';
+import { generateId } from '@/shared/utils';
 
 interface CreatePeladaModalProps {
   onClose: () => void;
@@ -104,3 +104,4 @@ export const CreatePeladaModal: React.FC<CreatePeladaModalProps> = ({ onClose, o
     </div>
   );
 };
+

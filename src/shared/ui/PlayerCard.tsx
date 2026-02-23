@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Player } from '../types';
 import { getCardRarity } from '../utils';
@@ -30,13 +29,13 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, onClick, isAdmin
   };
 
   return (
-    <div 
+    <div
       onClick={onClick}
       className={`group relative w-full aspect-[3/4] rounded-[10%] cursor-pointer transform transition-all duration-500 hover:scale-110 hover:-translate-y-2 select-none overflow-hidden border-2 ${rarity.border}/50 shadow-2xl ${rarity.glow}`}
     >
       <div className={`absolute inset-0 bg-gradient-to-br ${rarity.bg}`} />
       <div className="absolute inset-0 opacity-40 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] mix-blend-overlay" />
-      <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-tr from-black/40 via-white/10 to-transparent pointer-events-none" />
+      <div className="absolute inset-0 w-full h-full bg-gradient-to-tr from-black/40 via-white/10 to-transparent pointer-events-none" />
       <div className={`absolute inset-0 border-[8px] ${rarity.ornament} pointer-events-none rounded-[8%]`} />
       <div className={`absolute inset-2 border ${rarity.innerOrnament} pointer-events-none rounded-[7%]`} />
 
@@ -110,3 +109,4 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, onClick, isAdmin
     </div>
   );
 };
+

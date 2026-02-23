@@ -69,3 +69,4 @@ export const EasterEgg: React.FC = () => {
     </div>
   );
 };
+

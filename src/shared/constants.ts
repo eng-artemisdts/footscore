@@ -1,4 +1,3 @@
-
 import { Position } from './types';
 
 export const POSITIONS: Position[] = ["GOL", "ZAG", "LE", "LD", "VOL", "MEI", "ATA"];
@@ -59,3 +58,4 @@ export const TRANSLATIONS: Record<string, any> = {
     "attr.physical": "Físico"
   }
 };
+

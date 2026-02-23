@@ -1,4 +1,3 @@
-
 export type Position = 'GOL' | 'ZAG' | 'LE' | 'LD' | 'VOL' | 'MEI' | 'ATA';
 
 export interface Attributes {
@@ -34,7 +33,7 @@ export interface Event {
   format: string;
   teamsCount: number;
   status: EventStatus;
-  attendees: string[]; 
+  attendees: string[];
   confirmedAttendees: string[];
   teamDrawId: string | null;
   createdAt: string;
@@ -67,11 +66,20 @@ export interface GroupSettings {
   language: 'pt' | 'en';
 }
 
+export type Plan = 'free' | 'pro';
+
+export type SubscriptionStatus = 'free' | 'active' | 'past_due' | 'canceled' | 'trialing';
+
+export type PeladaRole = 'ADMIN' | 'PLAYER';
+
 export interface User {
   id: string;
   email: string;
   name: string;
   role: 'ADMIN' | 'PLAYER';
+  plan: Plan;
+  subscriptionStatus: SubscriptionStatus;
+  stripeCustomerId?: string | null;
 }
 
 export interface Pelada {
@@ -93,3 +101,4 @@ export interface SharePayload {
   d: TeamDraw | null;
   t: number;
 }
+

@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36" version="29.5.1">
+  <diagram name="Page-1" id="SZAhbRxcmr2FD9eJ7jBl">
+    <mxGraphModel dx="5165" dy="2000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="j-m4jIbK6823mcGbCuI6-1" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="Usuario&amp;nbsp;&lt;div&gt;Adm&lt;/div&gt;" vertex="1">
+          <mxGeometry height="60" width="30" x="150" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="" vertex="1">
+          <mxGeometry height="290" width="570" x="330" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-4" edge="1" parent="1" source="j-m4jIbK6823mcGbCuI6-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.008;entryY=0.397;entryDx=0;entryDy=0;entryPerimeter=0;" target="j-m4jIbK6823mcGbCuI6-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-5" connectable="0" parent="j-m4jIbK6823mcGbCuI6-4" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Usuario Logou" vertex="1">
+          <mxGeometry relative="1" x="0.0246" y="-2" as="geometry">
+            <mxPoint y="3" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-6" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#60a917;fontColor=#ffffff;strokeColor=#2D7600;" value="Cria / Seleciona&lt;br&gt;Esporte &lt;br&gt;(Pelada)" vertex="1">
+          <mxGeometry height="60" width="110" x="350" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-7" parent="1" style="whiteSpace=wrap;html=1;rounded=0;fillColor=#60a917;fontColor=#ffffff;strokeColor=#2D7600;" value="Gerencia &lt;br&gt;Elenco" vertex="1">
+          <mxGeometry height="60" width="120" x="480" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-9" parent="1" style="whiteSpace=wrap;html=1;rounded=0;fillColor=#60a917;fontColor=#ffffff;strokeColor=#2D7600;" value="Cria&amp;nbsp;&lt;br&gt;Sorteio" vertex="1">
+          <mxGeometry height="60" width="120" x="620" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-10" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Cria e visualiza peladas na Agenda" vertex="1">
+          <mxGeometry height="60" width="120" x="345" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-11" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Gerenciar Financeiero" vertex="1">
+          <mxGeometry height="60" width="120" x="480" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-12" parent="1" style="whiteSpace=wrap;html=1;rounded=0;fillColor=#60a917;fontColor=#ffffff;strokeColor=#2D7600;" value="Visualiza &lt;br&gt;Dashboard" vertex="1">
+          <mxGeometry height="60" width="120" x="620" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-13" parent="1" style="whiteSpace=wrap;html=1;rounded=0;fillColor=#fa6800;fontColor=#000000;strokeColor=#C73500;" value="Gerncia Link compartilhavel" vertex="1">
+          <mxGeometry height="60" width="120" x="345" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-14" parent="1" style="whiteSpace=wrap;html=1;rounded=0;dashed=1;" value="Visualiza &lt;br&gt;anuncios" vertex="1">
+          <mxGeometry height="60" width="120" x="480" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-17" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="Usuario Free" vertex="1">
+          <mxGeometry height="60" width="30" x="160" y="640" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-18" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="" vertex="1">
+          <mxGeometry height="320" width="570" x="330" y="550" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-19" edge="1" parent="1" source="j-m4jIbK6823mcGbCuI6-17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.008;entryY=0.397;entryDx=0;entryDy=0;entryPerimeter=0;" target="j-m4jIbK6823mcGbCuI6-18">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-20" connectable="0" parent="j-m4jIbK6823mcGbCuI6-19" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Usuario Logou" vertex="1">
+          <mxGeometry relative="1" x="0.0246" y="-2" as="geometry">
+            <mxPoint y="-9" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-21" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Acessa todas as peladas relacionadas ao uusario" vertex="1">
+          <mxGeometry height="60" width="110" x="360" y="580" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-22" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Visualiza &lt;br&gt;Elenco" vertex="1">
+          <mxGeometry height="60" width="120" x="490" y="580" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-23" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Cria&amp;nbsp;&lt;br&gt;Sorteio" vertex="1">
+          <mxGeometry height="60" width="120" x="630" y="580" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-24" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Visualiza peladas na Agenda" vertex="1">
+          <mxGeometry height="60" width="120" x="355" y="670" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-26" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Visualiza &lt;br&gt;Dashboard" vertex="1">
+          <mxGeometry height="60" width="120" x="630" y="670" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-28" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Visualiza &lt;br&gt;anuncios" vertex="1">
+          <mxGeometry height="60" width="120" x="355" y="760" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-37" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Confirma presenca na Pelada" vertex="1">
+          <mxGeometry height="60" width="120" x="490" y="670" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-39" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Atualiza o plano de assinatura" vertex="1">
+          <mxGeometry height="60" width="110" x="490" y="760" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-40" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="Usuario Anonimo" vertex="1">
+          <mxGeometry height="60" width="30" x="160" y="1080" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-41" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="" vertex="1">
+          <mxGeometry height="230" width="470" x="330" y="1020" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-42" edge="1" parent="1" source="j-m4jIbK6823mcGbCuI6-40" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.008;entryY=0.397;entryDx=0;entryDy=0;entryPerimeter=0;" target="j-m4jIbK6823mcGbCuI6-41">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-44" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Acessa Link compartilhavel" vertex="1">
+          <mxGeometry height="60" width="110" x="355" y="1050" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-45" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Visualiza &lt;br&gt;Elenco" vertex="1">
+          <mxGeometry height="60" width="120" x="490" y="1050" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-48" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Visualiza &lt;br&gt;Dashboard" vertex="1">
+          <mxGeometry height="60" width="120" x="640" y="1050" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-49" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Visualiza &lt;br&gt;anuncios" vertex="1">
+          <mxGeometry height="60" width="120" x="355" y="1140" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-51" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Criar o usuario" vertex="1">
+          <mxGeometry height="60" width="110" x="500" y="1140" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-59" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Gerncia Link compartilhavel" vertex="1">
+          <mxGeometry height="60" width="120" x="1290" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-60" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Visualiza &lt;br&gt;anuncios" vertex="1">
+          <mxGeometry height="60" width="120" x="1425" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-61" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Acessa todas as peladas relacionadas ao uusario" vertex="1">
+          <mxGeometry height="60" width="110" x="1570" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-62" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Visualiza &lt;br&gt;Elenco" vertex="1">
+          <mxGeometry height="60" width="120" x="1710" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-63" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Cria&amp;nbsp;&lt;br&gt;Sorteio" vertex="1">
+          <mxGeometry height="60" width="120" x="1850" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-65" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Visualiza &lt;br&gt;Dashboard" vertex="1">
+          <mxGeometry height="60" width="120" x="2000" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-66" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Visualiza &lt;br&gt;anuncios" vertex="1">
+          <mxGeometry height="60" width="120" x="2140" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-67" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Confirma presenca na Pelada" vertex="1">
+          <mxGeometry height="60" width="120" x="2000" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-68" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Atualiza o plano de assinatura" vertex="1">
+          <mxGeometry height="60" width="110" x="2145" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-72" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Visualiza &lt;br&gt;anuncios" vertex="1">
+          <mxGeometry height="60" width="120" x="1710" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-73" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Criar o usuario" vertex="1">
+          <mxGeometry height="60" width="110" x="1865" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-78" edge="1" parent="1" source="j-m4jIbK6823mcGbCuI6-76" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="j-m4jIbK6823mcGbCuI6-77" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-76" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Cria&amp;nbsp;&lt;br&gt;Sorteio" vertex="1">
+          <mxGeometry height="60" width="120" x="1275" y="600" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-80" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Criacao multipla de jogadores" vertex="1">
+          <mxGeometry height="60" width="120" x="620" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-88" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Gerenciamento de Minha conta" vertex="1">
+          <mxGeometry height="60" width="120" x="750" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-89" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Gerenciamento de Minha conta" vertex="1">
+          <mxGeometry height="60" width="120" x="620" y="760" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-97" edge="1" parent="1" source="j-m4jIbK6823mcGbCuI6-90" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="j-m4jIbK6823mcGbCuI6-93">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-90" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Atualiza o plano de assinatura" vertex="1">
+          <mxGeometry height="60" width="110" x="1275" y="845" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-91" connectable="0" parent="1" style="group" value="" vertex="1">
+          <mxGeometry height="150" width="490" x="1485" y="555" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-77" parent="j-m4jIbK6823mcGbCuI6-91" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;rounded=0;align=left;" value="&lt;div style=&quot;&quot;&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="150" width="490" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-83" parent="j-m4jIbK6823mcGbCuI6-91" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" value="&lt;div style=&quot;text-align: justify;&quot;&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;- O sorteio deve levar em consideracao a media das pontuacoes dos jogadores presentes para criar os times balanceados&lt;/span&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="90" width="370" x="60" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-84" parent="j-m4jIbK6823mcGbCuI6-91" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;div style=&quot;text-align: left;&quot;&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;- O Usuario deve ter a opcao de selecionar as pessoas presentes&lt;/span&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="40" width="370" x="50" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-87" parent="j-m4jIbK6823mcGbCuI6-91" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;div style=&quot;text-align: left;&quot;&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;- O Sistema deve devolver o time formado antes do plano de jogo.&lt;/span&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="40" width="370" x="50" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-92" connectable="0" parent="1" style="group" value="" vertex="1">
+          <mxGeometry height="150" width="490" x="1490" y="800" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-93" parent="j-m4jIbK6823mcGbCuI6-92" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;rounded=0;align=left;" value="&lt;div style=&quot;&quot;&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="150" width="490" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-95" parent="j-m4jIbK6823mcGbCuI6-92" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;div style=&quot;text-align: left;&quot;&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;- O sistema deve gerenciar as permissoes pelo plano de assinatura&lt;/span&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="40" width="370" x="50" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-96" parent="j-m4jIbK6823mcGbCuI6-92" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;div style=&quot;text-align: left;&quot;&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="40" width="370" x="50" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-98" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Acessa Link compartilhavel" vertex="1">
+          <mxGeometry height="60" width="110" x="1275" y="1105" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-100" connectable="0" parent="1" style="group" value="" vertex="1">
+          <mxGeometry height="150" width="490" x="1490" y="1070" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-101" parent="j-m4jIbK6823mcGbCuI6-100" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;rounded=0;align=left;" value="&lt;div style=&quot;&quot;&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="150" width="490" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-102" parent="j-m4jIbK6823mcGbCuI6-100" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" value="&lt;div style=&quot;text-align: justify;&quot;&gt;- O usuario deve ter acesso as informacoes correlatas mesmo sem logar&lt;/div&gt;" vertex="1">
+          <mxGeometry height="90" width="370" x="60" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-110" parent="j-m4jIbK6823mcGbCuI6-100" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" value="&lt;div style=&quot;text-align: justify;&quot;&gt;- O usuario deve poder criar sua conta caso nao esteja logado.&lt;/div&gt;" vertex="1">
+          <mxGeometry height="90" width="370" x="60" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-105" edge="1" parent="1" source="j-m4jIbK6823mcGbCuI6-98" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=-0.003;entryY=0.398;entryDx=0;entryDy=0;entryPerimeter=0;" target="j-m4jIbK6823mcGbCuI6-101">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-106" parent="1" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;" value="Compartilha Card de Jogador em redes sociais" vertex="1">
+          <mxGeometry height="60" width="110" x="1560" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-107" parent="1" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;" value="Compartilha Card de Jogador em redes sociais" vertex="1">
+          <mxGeometry height="60" width="110" x="750" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-108" parent="1" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;" value="Compartilha Card de Jogador em redes sociais" vertex="1">
+          <mxGeometry height="60" width="110" x="760" y="580" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-109" parent="1" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;" value="Compartilha Card de Jogador em redes sociais" vertex="1">
+          <mxGeometry height="60" width="110" x="645" y="1140" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-124" edge="1" parent="1" source="j-m4jIbK6823mcGbCuI6-117" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="2350" y="630" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-117" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Visualiza peladas na Agenda" vertex="1">
+          <mxGeometry height="60" width="120" x="2135" y="600" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-119" connectable="0" parent="1" style="group" value="" vertex="1">
+          <mxGeometry height="600" width="730" x="2350" y="260" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-120" parent="j-m4jIbK6823mcGbCuI6-119" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;rounded=0;align=left;" value="&lt;div style=&quot;&quot;&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="600" width="730" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-121" parent="j-m4jIbK6823mcGbCuI6-119" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" value="&lt;div style=&quot;text-align: justify;&quot;&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="360" width="551.2244897959184" x="89.38775510204083" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-122" parent="j-m4jIbK6823mcGbCuI6-119" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;div style=&quot;text-align: left;&quot;&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;- O Usuariio admin deve poder criar peladas com data, horario, local e numero minimo de pessoas&lt;/span&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="160" width="551.2244897959184" x="89.38775510204083" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-126" parent="j-m4jIbK6823mcGbCuI6-119" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;div style=&quot;text-align: left;&quot;&gt;- O usuario free acessa as proximas peladas e confirma presenca&lt;/div&gt;" vertex="1">
+          <mxGeometry height="160" width="551.2244897959184" x="74.48979591836735" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-127" parent="j-m4jIbK6823mcGbCuI6-119" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;div style=&quot;text-align: left;&quot;&gt;- O usuario free associado a pelada vai receber uma notificacao de novos agendamentos de pelada&lt;/div&gt;" vertex="1">
+          <mxGeometry height="160" width="551.2244897959184" x="74.48979591836735" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-129" parent="j-m4jIbK6823mcGbCuI6-119" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;div style=&quot;text-align: left;&quot;&gt;- O usuario adm recebe notificacoes de novas confirmacoes e falta de quorum&lt;/div&gt;" vertex="1">
+          <mxGeometry height="40" width="370" x="170" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-137" parent="j-m4jIbK6823mcGbCuI6-119" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;div style=&quot;text-align: left;&quot;&gt;- O usuario que nao estiver com o pagamento regular da pelada nao pode se confirmar.&lt;/div&gt;" vertex="1">
+          <mxGeometry height="40" width="370" x="160" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-141" edge="1" parent="1" source="j-m4jIbK6823mcGbCuI6-139" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="j-m4jIbK6823mcGbCuI6-140" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-139" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Gerenciar Financeiero" vertex="1">
+          <mxGeometry height="60" width="120" x="2840" y="1390" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-140" parent="1" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;rounded=0;" value="" vertex="1">
+          <mxGeometry height="147.5" width="1120" x="2340" y="1012.5" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-142" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" value="- O Usuario admin deve ter uma relacao dos pagamentos mensais da pelada" vertex="1">
+          <mxGeometry height="30" width="840" x="2500" y="1050" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-144" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" value="- O usuario admin deve poder confirmar pagamentos fora da plataforma" vertex="1">
+          <mxGeometry height="30" width="840" x="2500" y="1090" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-146" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Visualiza &lt;br&gt;Dashboard" vertex="1">
+          <mxGeometry height="60" width="120" x="1190" y="1390" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-152" connectable="0" parent="1" style="group" value="" vertex="1">
+          <mxGeometry height="260" width="650" x="1370" y="1320" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-153" parent="j-m4jIbK6823mcGbCuI6-152" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;rounded=0;align=left;" value="&lt;div style=&quot;&quot;&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="260" width="650" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-156" parent="j-m4jIbK6823mcGbCuI6-152" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="- Usuario admin deve poder cadastrarr o Mural da pelada, com informacoes, banners e informacoes para pagamento" vertex="1">
+          <mxGeometry height="30" width="470" x="90" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-157" parent="j-m4jIbK6823mcGbCuI6-152" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="- O sistema deve mostrar anuncios de sistema e banners de propaganda acessiveis por todos os usuariois" vertex="1">
+          <mxGeometry height="30" width="470" x="90" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-158" parent="j-m4jIbK6823mcGbCuI6-152" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" value="- Os usuarios devem ter acesso aos top 5 da pelada e numero de jogadores e media de overall" vertex="1">
+          <mxGeometry height="30" width="470" x="90" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-159" edge="1" parent="1" source="j-m4jIbK6823mcGbCuI6-146" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.003;entryY=0.407;entryDx=0;entryDy=0;entryPerimeter=0;" target="j-m4jIbK6823mcGbCuI6-153">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="j-m4jIbK6823mcGbCuI6-160" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font style=&quot;font-size: 55px; color: light-dark(rgb(0, 0, 0), rgb(255, 38, 59));&quot;&gt;FutScore - Archflow&lt;/font&gt;" vertex="1">
+          <mxGeometry height="30" width="760" x="1460" y="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

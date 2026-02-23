@@ -1,10 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Player, TeamDraw } from '../types';
-import { TRANSLATIONS } from '../constants';
-import { decodeSharePayload } from '../utils';
-import { PlayerCard } from './PlayerCard';
-import { PitchSVG } from './PitchSVG';
+import { TeamDraw, Player } from '@/shared/types';
+import { TRANSLATIONS } from '@/shared/constants';
+import { decodeSharePayload } from '@/shared/utils';
+import { PitchSVG } from '@/shared/ui/PitchSVG';
+import { PlayerCard } from '@/shared/ui/PlayerCard';
 
 interface ViewData {
   peladaName: string;
@@ -25,8 +25,8 @@ function getInitialViewData(): ViewData | null {
   };
 }
 
-export const ViewOnlyPelada: React.FC = () => {
-  const [data, setData] = useState<ViewData | null>(getInitialViewData);
+export const ViewOnlyPage: React.FC = () => {
+  const [data] = useState<ViewData | null>(getInitialViewData);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'players' | 'draw'>('dashboard');
 
   const t = TRANSLATIONS['pt'] || TRANSLATIONS['en'];
@@ -252,3 +252,4 @@ export const ViewOnlyPelada: React.FC = () => {
     </div>
   );
 };
+
