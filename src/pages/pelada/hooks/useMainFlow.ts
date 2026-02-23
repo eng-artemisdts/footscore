@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useReducer } from "react";
 import { Pelada, Player, TeamDraw } from "@/shared/types";
 import { drawTeams, encodeSharePayload, generateId, recalcOverall } from "@/shared/utils";
+import { supabase } from "@/shared/supabase";
+import { env } from "@/shared/env";
+import { shortenUrl } from "@/modules/share/shortio";
 
 type MainFlowTab = "dashboard" | "players" | "events" | "draw";
 
@@ -15,6 +18,7 @@ interface MainFlowState {
   showDeleteConfirm: boolean;
   searchQuery: string;
   shareCopied: boolean;
+  shareLoading: boolean;
 }
 
 type MainFlowAction =
@@ -25,6 +29,7 @@ type MainFlowAction =
   | { type: "SET_SHOW_DELETE_CONFIRM"; value: boolean }
   | { type: "SET_SEARCH_QUERY"; value: string }
   | { type: "SET_SHARE_COPIED"; value: boolean }
+  | { type: "SET_SHARE_LOADING"; value: boolean }
   | { type: "SET_PLAYERS"; updater: Player[] | ((prev: Player[]) => Player[]) }
   | {
       type: "UPDATE_SELECTED_PLAYER";
@@ -41,6 +46,7 @@ const initialState: MainFlowState = {
   showDeleteConfirm: false,
   searchQuery: "",
   shareCopied: false,
+  shareLoading: false,
 };
 
 function reducer(state: MainFlowState, action: MainFlowAction): MainFlowState {
@@ -55,6 +61,7 @@ function reducer(state: MainFlowState, action: MainFlowAction): MainFlowState {
         showDeleteConfirm: false,
         searchQuery: "",
         shareCopied: false,
+        shareLoading: false,
       };
     case "SET_ACTIVE_TAB":
       return { ...state, activeTab: action.tab };
@@ -68,6 +75,8 @@ function reducer(state: MainFlowState, action: MainFlowAction): MainFlowState {
       return { ...state, searchQuery: action.value };
     case "SET_SHARE_COPIED":
       return { ...state, shareCopied: action.value };
+    case "SET_SHARE_LOADING":
+      return { ...state, shareLoading: action.value };
     case "SET_PLAYERS": {
       const next =
         typeof action.updater === "function"
@@ -90,7 +99,7 @@ function reducer(state: MainFlowState, action: MainFlowAction): MainFlowState {
   }
 }
 
-export function useMainFlow(params: { pelada: Pelada; isAdmin: boolean }) {
+export function useMainFlow(params: { pelada: Pelada | null; isAdmin: boolean }) {
   const { pelada, isAdmin } = params;
 
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -119,6 +128,10 @@ export function useMainFlow(params: { pelada: Pelada; isAdmin: boolean }) {
     dispatch({ type: "SET_SHARE_COPIED", value });
   }, []);
 
+  const setShareLoading = useCallback((value: boolean) => {
+    dispatch({ type: "SET_SHARE_LOADING", value });
+  }, []);
+
   const setPlayers = useCallback(
     (updater: Player[] | ((prev: Player[]) => Player[])) => {
       dispatch({ type: "SET_PLAYERS", updater });
@@ -127,20 +140,19 @@ export function useMainFlow(params: { pelada: Pelada; isAdmin: boolean }) {
   );
 
   useEffect(() => {
+    if (!pelada) return;
     if (state.peladaId !== pelada.id) {
       const saved = localStorage.getItem(PLAYERS_STORAGE_KEY(pelada.id));
       const players = saved ? (JSON.parse(saved) as Player[]) : [];
       dispatch({ type: "INIT", peladaId: pelada.id, players });
     }
-  }, [pelada.id, state.peladaId]);
+  }, [pelada, state.peladaId]);
 
   useEffect(() => {
+    if (!pelada) return;
     if (state.peladaId !== pelada.id) return;
-    localStorage.setItem(
-      PLAYERS_STORAGE_KEY(pelada.id),
-      JSON.stringify(state.players),
-    );
-  }, [pelada.id, state.peladaId, state.players]);
+    localStorage.setItem(PLAYERS_STORAGE_KEY(pelada.id), JSON.stringify(state.players));
+  }, [pelada, state.peladaId, state.players]);
 
   const topPlayers = useMemo(() => {
     return [...state.players].sort((a, b) => b.overall - a.overall).slice(0, 5);
@@ -166,22 +178,80 @@ export function useMainFlow(params: { pelada: Pelada; isAdmin: boolean }) {
       : 0;
   }, [state.players]);
 
-  const handleShare = () => {
+  const getAccessToken = async (): Promise<string | null> => {
+    if (!supabase) return null;
+    let { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      const { data: refreshData } = await supabase.auth.refreshSession();
+      session = refreshData?.session ?? null;
+    }
+    const token = session?.access_token ?? null;
+    if (!token) return null;
+
+    const payloadPart = token.split(".")[1] ?? "";
+    if (!payloadPart) return null;
+    const normalized = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(
+      normalized.length + ((4 - (normalized.length % 4)) % 4),
+      "=",
+    );
+
+    try {
+      const decoded = JSON.parse(atob(padded)) as { iss?: string };
+      const iss = decoded?.iss ?? "";
+      if (!iss || !iss.startsWith(env.VITE_SUPABASE_URL)) {
+        await supabase.auth.signOut();
+        return null;
+      }
+    } catch {
+      return null;
+    }
+
+    return token;
+  };
+
+  const handleShare = async () => {
+    if (!pelada) return;
+    if (state.shareLoading) return;
     const payload = {
+      i: pelada.id,
       n: pelada.name,
       p: state.players,
       d: state.currentDraw,
       t: Date.now(),
     };
     const encoded = encodeSharePayload(payload);
-    const url = `${window.location.origin}${window.location.pathname.replace(/\/$/, "")}/view#${encoded}`;
-    navigator.clipboard.writeText(url).then(
-      () => {
-        setShareCopied(true);
-        setTimeout(() => setShareCopied(false), 2500);
-      },
-      () => alert("Não foi possível copiar o link."),
-    );
+    const longUrl = `${window.location.origin}${window.location.pathname.replace(/\/$/, "")}/view#${encoded}`;
+
+    let finalUrl = longUrl;
+    const cacheKey = `pelada_share_short_${pelada.id}`;
+    const cached = localStorage.getItem(cacheKey)?.trim() ?? "";
+    if (cached) {
+      finalUrl = cached;
+    } else {
+      setShareLoading(true);
+      try {
+        const token = await getAccessToken();
+        if (token) {
+          const short = await shortenUrl(longUrl, token);
+          if (short) {
+            finalUrl = short;
+            localStorage.setItem(cacheKey, short);
+          }
+        }
+      } catch {
+      } finally {
+        setShareLoading(false);
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(finalUrl);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2500);
+    } catch {
+      alert("Não foi possível copiar o link.");
+    }
   };
 
   const handleAddPlayer = () => {
@@ -309,6 +379,7 @@ export function useMainFlow(params: { pelada: Pelada; isAdmin: boolean }) {
     searchQuery: state.searchQuery,
     setSearchQuery,
     shareCopied: state.shareCopied,
+    shareLoading: state.shareLoading,
     topPlayers,
     filteredPlayers,
     avgOverall,

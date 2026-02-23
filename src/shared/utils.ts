@@ -19,6 +19,7 @@ export function decodeSharePayload(hash: string): SharePayload | null {
     const data = JSON.parse(json) as Record<string, unknown>;
     if (!data || typeof data.n !== 'string' || !Array.isArray(data.p)) return null;
     return {
+      i: typeof data.i === 'string' ? data.i : undefined,
       n: data.n,
       p: data.p as SharePayload['p'],
       d: (data.d ?? null) as SharePayload['d'],

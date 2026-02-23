@@ -72,6 +72,8 @@ export type SubscriptionStatus = 'free' | 'active' | 'past_due' | 'canceled' | '
 
 export type PeladaRole = 'ADMIN' | 'PLAYER';
 
+export type PeladaSport = 'FUTEBOL';
+
 export interface User {
   id: string;
   email: string;
@@ -85,6 +87,7 @@ export interface User {
 export interface Pelada {
   id: string;
   name: string;
+  sport: PeladaSport;
   userId: string;
   createdAt: string;
 }
@@ -96,6 +99,7 @@ export interface AppNotification {
 }
 
 export interface SharePayload {
+  i?: string;
   n: string;
   p: Player[];
   d: TeamDraw | null;
