@@ -264,9 +264,12 @@ export const AuthPage: React.FC = () => {
 
       <div className="w-full max-w-md relative z-10 animate-in zoom-in-95 duration-500">
         <div className="flex flex-col items-center mb-10">
-          <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-cyan-500/20 mb-6 group hover:scale-110 transition-transform">
-            <span className="font-black text-4xl text-black">F</span>
-          </div>
+          <img
+            src="/logo.svg"
+            alt="FutScore"
+            className="w-16 h-16 rounded-2xl shadow-2xl shadow-cyan-500/20 mb-6 hover:scale-110 transition-transform"
+            draggable={false}
+          />
           <h1 className="text-3xl font-black tracking-tighter uppercase mb-2">
             FutScore
           </h1>

@@ -8,6 +8,7 @@ import { PlayerCard } from '@/shared/ui/PlayerCard';
 import { useAuthStore } from '@/modules/auth/authStore';
 import { joinPelada } from '@/modules/peladas/joinPelada';
 import { useToast } from '@/shared/ui/ToastProvider';
+import { useConfirm } from '@/shared/ui/ConfirmProvider';
 
 interface ViewData {
   peladaId: string | null;
@@ -37,6 +38,7 @@ export const ViewOnlyPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
+  const confirm = useConfirm();
   const [data] = useState<ViewData | null>(getInitialViewData);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'players' | 'draw'>('dashboard');
   const joinPromptedRef = useRef(false);
@@ -70,7 +72,12 @@ export const ViewOnlyPage: React.FC = () => {
     joinPromptedRef.current = true;
 
     const run = async () => {
-      const ok = confirm(`Deseja entrar na pelada "${data.peladaName}"?`);
+      const ok = await confirm({
+        title: 'Entrar na pelada',
+        message: `Deseja entrar na pelada "${data.peladaName}"?`,
+        confirmText: 'Entrar',
+        cancelText: 'Cancelar',
+      });
       if (!ok) return;
       try {
         await joinPelada(data.peladaId!, user.id);
@@ -87,7 +94,7 @@ export const ViewOnlyPage: React.FC = () => {
     };
 
     void run();
-  }, [data?.peladaId, data?.peladaName, navigate, slugFromPath, toast, user?.id]);
+  }, [confirm, data?.peladaId, data?.peladaName, navigate, slugFromPath, toast, user?.id]);
 
   const topPlayers = useMemo(() => {
     if (!data?.players.length) return [];
@@ -103,32 +110,46 @@ export const ViewOnlyPage: React.FC = () => {
 
   if (data === null) {
     return (
-      <div className="min-h-screen bg-[#050810] flex flex-col items-center justify-center p-4 text-white">
-        <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mb-6">
-          <span className="text-4xl">🔗</span>
+      <div className="min-h-screen bg-[#050810] flex flex-col items-center justify-center p-4 text-white font-normal relative overflow-x-hidden">
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+          <div className="absolute top-[-20%] left-[-10%] w-[60%] aspect-square bg-cyan-600/10 blur-[150px] rounded-full" />
+          <div className="absolute bottom-[-20%] right-[-10%] w-[60%] aspect-square bg-blue-600/10 blur-[150px] rounded-full" />
         </div>
-        <h1 className="text-xl font-black uppercase tracking-tight mb-2">Link inválido ou expirado</h1>
-        <p className="text-white/40 text-sm text-center mb-6 max-w-sm">
-          Este link de visualização não contém dados válidos. Peça um novo link ao administrador da pelada.
-        </p>
-        <Link
-          to="/"
-          className="px-6 py-3 bg-white/10 border border-white/10 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-white/15 transition"
-        >
-          Ir para o FutScore
-        </Link>
+
+        <div className="relative z-10 flex flex-col items-center">
+          <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mb-6">
+            <span className="text-4xl">🔗</span>
+          </div>
+          <h1 className="text-xl font-black uppercase tracking-tight mb-2">Link inválido ou expirado</h1>
+          <p className="text-white/40 text-sm text-center mb-6 max-w-sm">
+            Este link de visualização não contém dados válidos. Peça um novo link ao administrador da pelada.
+          </p>
+          <Link
+            to="/"
+            className="px-6 py-3 bg-white/10 border border-white/10 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-white/15 transition"
+          >
+            Ir para o FutScore
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#050810] text-white selection:bg-cyan-500/30 pb-20 font-normal">
+    <div className="min-h-screen bg-[#050810] text-white selection:bg-cyan-500/30 pb-20 font-normal relative overflow-x-hidden">
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[-20%] left-[-10%] w-[60%] aspect-square bg-cyan-600/10 blur-[150px] rounded-full" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] aspect-square bg-blue-600/10 blur-[150px] rounded-full" />
+      </div>
       <header className="border-b border-white/5 bg-black/40 backdrop-blur-xl sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 sm:w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20">
-              <span className="font-black text-lg sm:text-2xl text-black">F</span>
-            </div>
+            <img
+              src="/logo.svg"
+              alt={t['app.name']}
+              className="w-8 h-8 sm:w-10 h-10 rounded-lg sm:rounded-xl shadow-lg shadow-cyan-500/20"
+              draggable={false}
+            />
             <div>
               <h1 className="text-xl sm:text-2xl font-black tracking-tighter uppercase">{t['app.name']}</h1>
               <p className="text-[8px] sm:text-[9px] font-bold text-cyan-400 uppercase tracking-widest truncate max-w-[180px] sm:max-w-[240px]">
