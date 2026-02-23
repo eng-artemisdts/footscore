@@ -2,7 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
-import { EasterEgg } from "@/shared/ui/EasterEgg";
+import "@/shared/env";
 
 const rootElement = document.getElementById("root");
 if (!rootElement) {
@@ -14,8 +14,6 @@ root.render(
   <React.StrictMode>
     <BrowserRouter>
       <App />
-      <EasterEgg />
     </BrowserRouter>
   </React.StrictMode>,
 );
-

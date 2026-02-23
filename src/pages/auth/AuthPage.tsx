@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { User } from "@/shared/types";
 import { supabase } from "@/shared/supabase";
+import { env } from "@/shared/env";
 import { useAuthStore } from "@/modules/auth/authStore";
+import { supabaseUserToAppUser } from "@/modules/auth/supabaseUserToAppUser";
 
 const ACCOUNTS_KEY = "futscore_accounts";
 
@@ -82,6 +84,8 @@ export const AuthPage: React.FC = () => {
             return;
           }
           if (data.session) {
+            setUser(supabaseUserToAppUser(data.session.user, null));
+            setLoading(false);
             return;
           }
           setError("Confirme seu e-mail pelo link que enviamos.");
@@ -100,6 +104,8 @@ export const AuthPage: React.FC = () => {
             return;
           }
           if (data.session) {
+            setUser(supabaseUserToAppUser(data.session.user, null));
+            setLoading(false);
             return;
           }
         }
@@ -191,13 +197,10 @@ export const AuthPage: React.FC = () => {
   };
 
   const getRedirectOrigin = (): string => {
-    const meta = import.meta as unknown as {
-      env?: { VITE_APP_URL?: string; DEV?: boolean };
-    };
-    if (meta.env?.DEV) {
+    if (import.meta.env.DEV) {
       return window.location.origin;
     }
-    const envOrigin = meta.env?.VITE_APP_URL;
+    const envOrigin = env.VITE_APP_URL;
     if (envOrigin) {
       return String(envOrigin).replace(/\/$/, "");
     }

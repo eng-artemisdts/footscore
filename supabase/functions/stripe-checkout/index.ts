@@ -2,7 +2,7 @@ import Stripe from "https://esm.sh/stripe@14?target=denonext";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
-  apiVersion: "2024-11-20",
+  apiVersion: "2026-01-28.clover",
 });
 
 const corsHeaders = {
@@ -10,19 +10,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
-
-function getUserIdFromJwt(token: string): { id: string; email?: string } | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return null;
-    const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const decoded = JSON.parse(atob(payload)) as { sub?: string; email?: string };
-    if (!decoded?.sub) return null;
-    return { id: decoded.sub, email: decoded.email };
-  } catch {
-    return null;
-  }
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -38,16 +25,33 @@ Deno.serve(async (req) => {
       );
     }
 
-    const token = authHeader.replace("Bearer ", "").trim();
-    const jwtUser = getUserIdFromJwt(token);
-    if (!jwtUser) {
+    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    if (!supabaseUrl || !supabaseAnonKey) {
       return new Response(
-        JSON.stringify({ error: "Invalid token" }),
+        JSON.stringify({ error: "Supabase not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    });
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseAuth.auth.getUser(token);
+
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Invalid JWT" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const user = { id: jwtUser.id, email: jwtUser.email };
+    const authUser = { id: user.id, email: user.email ?? undefined };
 
     const { success_url, cancel_url } = (await req.json()) as {
       success_url?: string;
@@ -70,22 +74,22 @@ Deno.serve(async (req) => {
     const { data: profile } = await supabaseService
       .from("profiles")
       .select("stripe_customer_id")
-      .eq("id", user.id)
+      .eq("id", authUser.id)
       .single();
 
     let customerId = profile?.stripe_customer_id;
 
     if (!customerId) {
       const customer = await stripe.customers.create({
-        email: user.email ?? undefined,
-        metadata: { supabase_user_id: user.id },
+        email: authUser.email,
+        metadata: { supabase_user_id: authUser.id },
       });
       customerId = customer.id;
       await supabaseService
         .from("profiles")
         .upsert(
           {
-            id: user.id,
+            id: authUser.id,
             stripe_customer_id: customerId,
             plan: "free",
             subscription_status: "free",
@@ -101,7 +105,7 @@ Deno.serve(async (req) => {
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: success_url ?? undefined,
       cancel_url: cancel_url ?? undefined,
-      subscription_data: { metadata: { supabase_user_id: user.id } },
+      subscription_data: { metadata: { supabase_user_id: authUser.id } },
       allow_promotion_codes: true,
     });
 

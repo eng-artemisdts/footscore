@@ -1,81 +1,91 @@
+import axios from "axios";
+import { env } from "@/shared/env";
+
 const EDGE_REQUEST_TIMEOUT_MS = 15000;
 
 const getEdgeUrl = () => {
-  const meta = import.meta as unknown as { env?: { VITE_SUPABASE_URL?: string } };
-  const url = meta.env?.VITE_SUPABASE_URL;
-  if (!url) return null;
-  return url.replace(/\.supabase\.co$/, ".supabase.co/functions/v1");
+  const withoutTrailingSlash = env.VITE_SUPABASE_URL.replace(/\/+$/, "");
+  if (withoutTrailingSlash.includes("/functions/v1")) {
+    return withoutTrailingSlash.replace(/\/functions\/v1\/?$/, "/functions/v1");
+  }
+  return `${withoutTrailingSlash}/functions/v1`;
 };
 
 export async function createCheckoutSession(successUrl: string, cancelUrl: string, accessToken: string): Promise<string | null> {
   const base = getEdgeUrl();
-  if (!base) return null;
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), EDGE_REQUEST_TIMEOUT_MS);
-  let res: Response;
   try {
-    res = await fetch(`${base}/stripe-checkout`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({ success_url: successUrl, cancel_url: cancelUrl }),
-      signal: controller.signal,
-    });
+    const res = await axios.post(
+      `${base}/stripe-checkout`,
+      { success_url: successUrl, cancel_url: cancelUrl },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          apikey: env.VITE_SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${accessToken}`,
+        },
+        timeout: EDGE_REQUEST_TIMEOUT_MS,
+      }
+    );
+    const data = res.data as { url?: string };
+    if (!data.url) {
+      throw new Error("Checkout indisponível: o servidor não retornou a URL do Stripe.");
+    }
+    return data.url;
   } catch (e) {
-    clearTimeout(timeoutId);
-    if (e instanceof Error && e.name === "AbortError") {
-      throw new Error("A requisição demorou muito. Tente novamente.");
+    if (axios.isAxiosError(e)) {
+      if (e.code === "ECONNABORTED") {
+        throw new Error("A requisição demorou muito. Tente novamente.");
+      }
+      if (e.response) {
+        const err = (e.response.data ?? {}) as { error?: string };
+        const msg = err?.error ?? "Falha ao criar sessão de checkout";
+        if (e.response.status === 401) {
+          throw new Error("Sessão expirada ou inválida. Faça login novamente.");
+        }
+        throw new Error(msg);
+      }
+      throw new Error(e.message || "Falha ao conectar ao servidor.");
     }
     throw e;
   }
-  clearTimeout(timeoutId);
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({})) as { error?: string };
-    const msg = err?.error ?? "Falha ao criar sessão de checkout";
-    if (res.status === 401) {
-      throw new Error("Sessão expirada ou inválida. Faça login novamente.");
-    }
-    throw new Error(msg);
-  }
-  const data = (await res.json()) as { url?: string };
-  return data.url ?? null;
 }
 
 export async function createPortalSession(returnUrl: string, accessToken: string): Promise<string | null> {
   const base = getEdgeUrl();
-  if (!base) return null;
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), EDGE_REQUEST_TIMEOUT_MS);
-  let res: Response;
   try {
-    res = await fetch(`${base}/stripe-portal`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
+    const res = await axios.post(
+      `${base}/stripe-portal`,
+      { return_url: returnUrl },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          apikey: env.VITE_SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${accessToken}`,
+        },
+        timeout: EDGE_REQUEST_TIMEOUT_MS,
       },
-      body: JSON.stringify({ return_url: returnUrl }),
-      signal: controller.signal,
-    });
+    );
+    const data = res.data as { url?: string };
+    if (!data.url) {
+      throw new Error("Portal indisponível: o servidor não retornou a URL do Stripe.");
+    }
+    return data.url;
   } catch (e) {
-    clearTimeout(timeoutId);
-    if (e instanceof Error && e.name === "AbortError") {
-      throw new Error("A requisição demorou muito. Tente novamente.");
+    if (axios.isAxiosError(e)) {
+      if (e.code === "ECONNABORTED") {
+        throw new Error("A requisição demorou muito. Tente novamente.");
+      }
+      if (e.response) {
+        const err = (e.response.data ?? {}) as { error?: string };
+        const msg = err?.error ?? "Falha ao abrir portal";
+        if (e.response.status === 401) {
+          throw new Error("Sessão expirada ou inválida. Faça login novamente.");
+        }
+        throw new Error(msg);
+      }
+      throw new Error(e.message || "Falha ao conectar ao servidor.");
     }
     throw e;
   }
-  clearTimeout(timeoutId);
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({})) as { error?: string };
-    const msg = err?.error ?? "Falha ao abrir portal";
-    if (res.status === 401) {
-      throw new Error("Sessão expirada ou inválida. Faça login novamente.");
-    }
-    throw new Error(msg);
-  }
-  const data = (await res.json()) as { url?: string };
-  return data.url ?? null;
 }
 

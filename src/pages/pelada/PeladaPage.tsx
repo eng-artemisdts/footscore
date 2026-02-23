@@ -60,7 +60,11 @@ export const PeladaPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#050810] text-white selection:bg-cyan-500/30 pb-20 font-normal">
+    <div className="min-h-screen bg-[#050810] text-white selection:bg-cyan-500/30 pb-20 font-normal relative overflow-x-hidden">
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[-20%] left-[-10%] w-[60%] aspect-square bg-cyan-600/10 blur-[150px] rounded-full" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] aspect-square bg-blue-600/10 blur-[150px] rounded-full" />
+      </div>
       <header className="border-b border-white/5 bg-black/40 backdrop-blur-xl sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-3">
@@ -118,7 +122,7 @@ export const PeladaPage: React.FC = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10 relative z-10">
         {activeTab === 'dashboard' && (
           <div className="animate-in fade-in duration-700">
             <div className="flex flex-col sm:flex-row items-center gap-4 mb-10">

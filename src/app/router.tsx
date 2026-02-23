@@ -25,11 +25,14 @@ export function AppRouter() {
       setAuthChecked(true);
       return;
     }
-    async function loadUser(sessionUser: {
+    let cancelled = false;
+    async function hydrateUser(sessionUser: {
       id: string;
       email?: string;
       user_metadata?: Record<string, unknown>;
     }) {
+      if (cancelled) return;
+      setUser(supabaseUserToAppUser(sessionUser, null));
       try {
         const { data: profile } = await supabase!
           .from("profiles")
@@ -41,6 +44,9 @@ export function AppRouter() {
           subscription_status: SubscriptionStatus;
           stripe_customer_id?: string | null;
         } | null;
+        if (cancelled) return;
+        const current = useAuthStore.getState().user;
+        if (current?.id !== sessionUser.id) return;
         setUser(
           supabaseUserToAppUser(
             sessionUser as Parameters<typeof supabaseUserToAppUser>[0],
@@ -48,32 +54,57 @@ export function AppRouter() {
           ),
         );
       } catch {
-        setUser(
-          supabaseUserToAppUser(
-            sessionUser as Parameters<typeof supabaseUserToAppUser>[0],
-            null,
-          ),
-        );
+        if (cancelled) return;
       }
     }
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        await loadUser(session.user);
-      } else {
-        setUser(null);
+
+    const withTimeout = async <T,>(p: Promise<T>, ms: number): Promise<T> => {
+      return await Promise.race([
+        p,
+        new Promise<T>((_, reject) =>
+          setTimeout(() => reject(new Error("Auth timeout")), ms),
+        ),
+      ]);
+    };
+
+    (async () => {
+      try {
+        const { data: { session } } = await withTimeout(
+          supabase.auth.getSession(),
+          8000,
+        );
+        if (cancelled) return;
+        if (session?.user) {
+          void hydrateUser(session.user);
+        } else if (!useAuthStore.getState().user) {
+          setUser(null);
+        }
+      } catch {
+        if (!cancelled && !useAuthStore.getState().user) setUser(null);
+      } finally {
+        if (!cancelled) setAuthChecked(true);
       }
-      setAuthChecked(true);
-    });
+    })();
+
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        await loadUser(session.user);
-      } else {
-        setUser(null);
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      try {
+        if (session?.user) {
+          void hydrateUser(session.user);
+        } else if (event === "SIGNED_OUT") {
+          setUser(null);
+        }
+      } catch {
+        if (event === "SIGNED_OUT") setUser(null);
+      } finally {
+        if (!cancelled) setAuthChecked(true);
       }
     });
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, [setUser]);
 
   if (location.pathname === "/view" || location.pathname.endsWith("/view")) {

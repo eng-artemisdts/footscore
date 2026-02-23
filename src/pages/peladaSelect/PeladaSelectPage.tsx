@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { peladaSlug } from "@/shared/utils";
 import { Pelada } from "@/shared/types";
 import { useAuthStore } from "@/modules/auth/authStore";
 import { createCheckoutSession, createPortalSession } from "@/modules/billing/stripe";
 import { supabase } from "@/shared/supabase";
+import { env } from "@/shared/env";
 import { CreatePeladaModal } from "./components/CreatePeladaModal";
 import { savePelada, usePeladas } from "./hooks/usePeladasStorage";
 
@@ -15,8 +16,17 @@ export const PeladaSelectPage: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
   const [upgradeError, setUpgradeError] = useState<string | null>(null);
+  const [logoutLoading, setLogoutLoading] = useState(false);
+  const mountedRef = useRef(true);
 
   if (!user) return null;
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const peladas = usePeladas(user.id, showModal);
   const isPro = user.plan === "pro";
@@ -38,7 +48,26 @@ export const PeladaSelectPage: React.FC = () => {
       const { data: refreshData } = await supabase.auth.refreshSession();
       session = refreshData?.session ?? null;
     }
-    return session?.access_token ?? null;
+    const token = session?.access_token ?? null;
+    if (!token) return null;
+
+    const payloadPart = token.split(".")[1] ?? "";
+    if (!payloadPart) return null;
+    const normalized = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), "=");
+
+    try {
+      const decoded = JSON.parse(atob(padded)) as { iss?: string };
+      const iss = decoded?.iss ?? "";
+      if (!iss || !iss.startsWith(env.VITE_SUPABASE_URL)) {
+        await supabase.auth.signOut();
+        return null;
+      }
+    } catch {
+      return null;
+    }
+
+    return token;
   };
 
   const handleUpgrade = async () => {
@@ -54,10 +83,10 @@ export const PeladaSelectPage: React.FC = () => {
         setUpgradeError("Sessão expirada. Saia e entre novamente para fazer upgrade.");
         return;
       }
-      const base = window.location.origin + window.location.pathname.replace(/\/$/, "");
-      const url = await createCheckoutSession(`${base}/pelada?upgraded=1`, `${base}/pelada`, token);
-      if (url) window.location.href = url;
-      else setUpgradeError("Não foi possível abrir o checkout.");
+      const successUrl = new URL("/pelada?upgraded=1", window.location.origin).toString();
+      const cancelUrl = new URL("/pelada", window.location.origin).toString();
+      const url = await createCheckoutSession(successUrl, cancelUrl, token);
+      window.location.href = url;
     } catch (e) {
       setUpgradeError(e instanceof Error ? e.message : "Erro ao abrir checkout.");
     } finally {
@@ -78,10 +107,9 @@ export const PeladaSelectPage: React.FC = () => {
         setUpgradeError("Sessão expirada. Saia e entre novamente.");
         return;
       }
-      const base = window.location.origin + window.location.pathname.replace(/\/$/, "");
-      const url = await createPortalSession(`${base}/pelada`, token);
-      if (url) window.location.href = url;
-      else setUpgradeError("Nenhuma assinatura para gerenciar.");
+      const returnUrl = new URL("/pelada", window.location.origin).toString();
+      const url = await createPortalSession(returnUrl, token);
+      window.location.href = url;
     } catch (e) {
       setUpgradeError(e instanceof Error ? e.message : "Erro ao abrir portal.");
     } finally {
@@ -90,6 +118,17 @@ export const PeladaSelectPage: React.FC = () => {
   };
 
   const firstName = user.name?.trim().split(" ")[0] || "Craque";
+
+  const handleLogout = async () => {
+    if (logoutLoading) return;
+    setLogoutLoading(true);
+    try {
+      await logout();
+    } finally {
+      if (mountedRef.current) setLogoutLoading(false);
+    }
+    if (mountedRef.current) navigate("/", { replace: true });
+  };
 
   return (
     <div className="min-h-screen bg-[#050810] flex items-center justify-center p-4 overflow-hidden relative font-normal">
@@ -130,6 +169,14 @@ export const PeladaSelectPage: React.FC = () => {
                 {upgradeLoading ? "Abrindo..." : "Gerenciar assinatura"}
               </button>
             )}
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={logoutLoading}
+              className="text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-colors disabled:opacity-50"
+            >
+              {logoutLoading ? "Saindo..." : "Sair"}
+            </button>
           </div>
         </div>
 

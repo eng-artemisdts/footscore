@@ -16,11 +16,18 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       setUser: (user) => set({ user }),
       logout: async () => {
+        set({ user: null });
         try {
-          await supabase?.auth.signOut();
-        } finally {
-          set({ user: null });
-        }
+          localStorage.removeItem("pelada_user");
+        } catch {}
+        const signOutPromise = supabase?.auth.signOut();
+        if (!signOutPromise) return;
+        try {
+          await Promise.race([
+            signOutPromise,
+            new Promise<void>((resolve) => setTimeout(resolve, 4000)),
+          ]);
+        } catch {}
       },
       isAdminForPelada: (peladaUserId) => {
         const current = get().user;
