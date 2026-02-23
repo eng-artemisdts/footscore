@@ -8,6 +8,8 @@ export const supabase: SupabaseClient | null =
           storage: localStorage,
           persistSession: true,
           autoRefreshToken: true,
+          detectSessionInUrl: false,
+          flowType: "pkce",
         },
       })
     : null;

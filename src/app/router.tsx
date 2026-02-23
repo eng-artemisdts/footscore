@@ -6,6 +6,7 @@ import {
   useLocation,
 } from "react-router-dom";
 import { AuthPage } from "@/pages/auth/AuthPage";
+import { AuthCallbackPage } from "@/pages/auth/AuthCallbackPage";
 import { PeladaPage } from "@/pages/pelada/PeladaPage";
 import { PeladaSelectPage } from "@/pages/peladaSelect/PeladaSelectPage";
 import { ViewOnlyPage } from "@/pages/view/ViewOnlyPage";
@@ -111,6 +112,10 @@ export function AppRouter() {
     return <ViewOnlyPage />;
   }
 
+  if (location.pathname === "/auth/callback") {
+    return <AuthCallbackPage />;
+  }
+
   if (!authChecked) {
     return (
       <div className="min-h-screen bg-[#050810] flex items-center justify-center">
@@ -125,6 +130,7 @@ export function AppRouter() {
         path="/"
         element={user ? <Navigate to="/pelada" replace /> : <AuthPage />}
       />
+      <Route path="/auth/callback" element={<AuthCallbackPage />} />
       <Route
         path="/pelada"
         element={
