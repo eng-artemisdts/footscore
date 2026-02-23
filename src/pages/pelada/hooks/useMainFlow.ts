@@ -1,13 +1,32 @@
 import { useCallback, useEffect, useMemo, useReducer } from "react";
-import { Pelada, Player, TeamDraw } from "@/shared/types";
+import { Pelada, PeladaSport, Player, Position, TeamDraw } from "@/shared/types";
 import { drawTeams, encodeSharePayload, generateId, recalcOverall } from "@/shared/utils";
 import { supabase } from "@/shared/supabase";
 import { env } from "@/shared/env";
 import { shortenUrl } from "@/modules/share/shortio";
+import { coerceAttributesForSport, getSportSchema } from "@/shared/sportSchemas";
+import { useToast } from "@/shared/ui/ToastProvider";
 
 type MainFlowTab = "dashboard" | "players" | "events" | "draw";
 
 const PLAYERS_STORAGE_KEY = (peladaId: string) => `pelada_players_${peladaId}`;
+
+type PeladaPlayerRow = {
+  pelada_id: string;
+  id: string;
+  user_id: string | null;
+  display_name: string;
+  nick: string;
+  photo_url: string | null;
+  primary_position: string;
+  secondary_position: string | null;
+  dominant_foot: Player["dominantFoot"];
+  presence_count: number;
+  attributes: Player["attributes"];
+  overall: number;
+  created_at?: string;
+  updated_at?: string;
+};
 
 interface MainFlowState {
   peladaId: string | null;
@@ -35,6 +54,7 @@ type MainFlowAction =
       type: "UPDATE_SELECTED_PLAYER";
       updater: (current: Player) => Player;
       recalc?: boolean;
+      sport?: PeladaSport;
     };
 
 const initialState: MainFlowState = {
@@ -87,7 +107,10 @@ function reducer(state: MainFlowState, action: MainFlowAction): MainFlowState {
     case "UPDATE_SELECTED_PLAYER": {
       if (!state.selectedPlayer) return state;
       const next = action.updater(state.selectedPlayer);
-      const final = action.recalc ? { ...next, overall: recalcOverall(next) } : next;
+      const final =
+        action.recalc && action.sport
+          ? { ...next, overall: recalcOverall(next, action.sport) }
+          : next;
       return {
         ...state,
         selectedPlayer: final,
@@ -101,8 +124,110 @@ function reducer(state: MainFlowState, action: MainFlowAction): MainFlowState {
 
 export function useMainFlow(params: { pelada: Pelada | null; isAdmin: boolean }) {
   const { pelada, isAdmin } = params;
+  const toast = useToast();
 
   const [state, dispatch] = useReducer(reducer, initialState);
+
+  const loadLocalPlayers = useCallback((peladaId: string): Player[] => {
+    try {
+      const saved = localStorage.getItem(PLAYERS_STORAGE_KEY(peladaId));
+      return saved ? (JSON.parse(saved) as Player[]) : [];
+    } catch {
+      return [];
+    }
+  }, []);
+
+  const rowToPlayer = useCallback((row: PeladaPlayerRow): Player => {
+    const primary = (row.primary_position as Position) ?? "MEI";
+    const secondary = (row.secondary_position as Position | null) ?? null;
+    const attributes = coerceAttributesForSport(pelada?.sport, row.attributes);
+    return {
+      id: row.id,
+      userId: row.user_id,
+      displayName: row.display_name,
+      nick: row.nick,
+      photoUrl: row.photo_url,
+      primaryPosition: primary,
+      secondaryPosition: secondary,
+      dominantFoot: row.dominant_foot,
+      presenceCount: row.presence_count ?? 0,
+      attributes,
+      overall:
+        typeof row.overall === "number"
+          ? row.overall
+          : recalcOverall(
+              { ...(row as any), attributes, primaryPosition: primary, secondaryPosition: secondary },
+              pelada?.sport ?? "FUTEBOL",
+            ),
+    };
+  }, [pelada?.sport]);
+
+  const playerToRow = useCallback(
+    (peladaId: string, player: Player): PeladaPlayerRow => {
+      return {
+        pelada_id: peladaId,
+        id: player.id,
+        user_id: player.userId,
+        display_name: player.displayName,
+        nick: player.nick,
+        photo_url: player.photoUrl,
+        primary_position: player.primaryPosition,
+        secondary_position: player.secondaryPosition,
+        dominant_foot: player.dominantFoot,
+        presence_count: player.presenceCount ?? 0,
+        attributes: coerceAttributesForSport(pelada?.sport, player.attributes),
+        overall: player.overall,
+        updated_at: new Date().toISOString(),
+      };
+    },
+    [pelada?.sport],
+  );
+
+  const upsertPlayersToRemote = useCallback(
+    async (peladaId: string, players: Player[]) => {
+      if (!supabase) return;
+      if (!players.length) return;
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user?.id) return;
+
+      const rows = players.map((p) => playerToRow(peladaId, p));
+      await supabase.from("pelada_players").upsert(rows as any, { onConflict: "pelada_id,id" });
+    },
+    [playerToRow],
+  );
+
+  const upsertPlayerToRemote = useCallback(
+    async (peladaId: string, player: Player) => {
+      if (!supabase) return;
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user?.id) throw new Error("Sessão expirada. Saia e entre novamente.");
+      const row = playerToRow(peladaId, player);
+      const { error } = await supabase
+        .from("pelada_players")
+        .upsert(row as any, { onConflict: "pelada_id,id" });
+      if (error) throw new Error(error.message || "Não foi possível salvar o jogador.");
+    },
+    [playerToRow],
+  );
+
+  const deletePlayerFromRemote = useCallback(async (peladaId: string, playerId: string) => {
+    if (!supabase) return;
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user?.id) throw new Error("Sessão expirada. Saia e entre novamente.");
+
+    const { error } = await supabase
+      .from("pelada_players")
+      .delete()
+      .eq("pelada_id", peladaId)
+      .eq("id", playerId);
+    if (error) throw new Error(error.message || "Não foi possível excluir o jogador.");
+  }, []);
 
   const setActiveTab = useCallback((tab: MainFlowTab) => {
     dispatch({ type: "SET_ACTIVE_TAB", tab });
@@ -141,12 +266,68 @@ export function useMainFlow(params: { pelada: Pelada | null; isAdmin: boolean })
 
   useEffect(() => {
     if (!pelada) return;
-    if (state.peladaId !== pelada.id) {
-      const saved = localStorage.getItem(PLAYERS_STORAGE_KEY(pelada.id));
-      const players = saved ? (JSON.parse(saved) as Player[]) : [];
-      dispatch({ type: "INIT", peladaId: pelada.id, players });
+    if (state.peladaId === pelada.id) return;
+
+    let cancelled = false;
+    const sport = pelada.sport;
+    const localPlayers = loadLocalPlayers(pelada.id).map((p) => {
+      const attributes = coerceAttributesForSport(sport, p.attributes);
+      const next = { ...p, attributes };
+      return { ...next, overall: recalcOverall(next, sport) };
+    });
+
+    const initLocal = () => {
+      if (cancelled) return;
+      dispatch({ type: "INIT", peladaId: pelada.id, players: localPlayers });
+      if (isAdmin && localPlayers.length) {
+        void upsertPlayersToRemote(pelada.id, localPlayers);
+      }
+    };
+
+    if (!supabase) {
+      initLocal();
+      return () => {
+        cancelled = true;
+      };
     }
-  }, [pelada, state.peladaId]);
+
+    void (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (cancelled) return;
+      if (!user?.id) {
+        initLocal();
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("pelada_players")
+        .select(
+          "pelada_id,id,user_id,display_name,nick,photo_url,primary_position,secondary_position,dominant_foot,presence_count,attributes,overall,created_at,updated_at",
+        )
+        .eq("pelada_id", pelada.id)
+        .order("created_at", { ascending: true });
+
+      if (cancelled) return;
+      if (error || !data) {
+        initLocal();
+        return;
+      }
+
+      const remotePlayers = (data as unknown as PeladaPlayerRow[]).map(rowToPlayer);
+      if (remotePlayers.length) {
+        dispatch({ type: "INIT", peladaId: pelada.id, players: remotePlayers });
+        return;
+      }
+
+      initLocal();
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdmin, loadLocalPlayers, pelada, rowToPlayer, state.peladaId, upsertPlayersToRemote]);
 
   useEffect(() => {
     if (!pelada) return;
@@ -250,12 +431,14 @@ export function useMainFlow(params: { pelada: Pelada | null; isAdmin: boolean })
       setShareCopied(true);
       setTimeout(() => setShareCopied(false), 2500);
     } catch {
-      alert("Não foi possível copiar o link.");
+      toast.error("Não foi possível copiar o link.", { title: "Cópia falhou" });
     }
   };
 
   const handleAddPlayer = () => {
     if (!isAdmin) return;
+    if (!pelada) return;
+    const schema = getSportSchema(pelada.sport);
     const newPlayer: Player = {
       id: generateId(),
       userId: null,
@@ -266,25 +449,28 @@ export function useMainFlow(params: { pelada: Pelada | null; isAdmin: boolean })
       secondaryPosition: null,
       dominantFoot: "DIREITO",
       presenceCount: 0,
-      attributes: {
-        pace: 70,
-        shooting: 70,
-        passing: 70,
-        dribbling: 70,
-        defending: 70,
-        physical: 70,
-      },
-      overall: 70,
+      attributes: { ...schema.defaultAttributes },
+      overall: 0,
     };
-    newPlayer.overall = recalcOverall(newPlayer);
+    newPlayer.overall = recalcOverall(newPlayer, pelada.sport);
     setCurrentDraw(null);
     setPlayers((prev) => [...prev, newPlayer]);
     setSelectedPlayer(newPlayer);
+
+    void (async () => {
+      try {
+        await upsertPlayerToRemote(pelada.id, newPlayer);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Não foi possível salvar o jogador.", {
+          title: "Falha ao salvar",
+        });
+      }
+    })();
   };
 
   const handleDraw = () => {
     if (state.players.length < 2) {
-      alert("Adicione pelo menos 2 jogadores.");
+      toast.warning("Adicione pelo menos 2 jogadores.", { title: "Jogadores insuficientes" });
       return;
     }
     const draw = drawTeams(state.players, 2, "event-" + Date.now());
@@ -303,7 +489,7 @@ export function useMainFlow(params: { pelada: Pelada | null; isAdmin: boolean })
         if (p.id !== playerId) return p;
         const updatedAttrs = { ...p.attributes, [attr]: value } as Player["attributes"];
         const updatedPlayer = { ...p, attributes: updatedAttrs };
-        updatedPlayer.overall = recalcOverall(updatedPlayer);
+        updatedPlayer.overall = recalcOverall(updatedPlayer, pelada?.sport ?? "FUTEBOL");
         if (state.selectedPlayer?.id === playerId) {
           setSelectedPlayer(updatedPlayer);
         }
@@ -346,12 +532,41 @@ export function useMainFlow(params: { pelada: Pelada | null; isAdmin: boolean })
   const executeRemovePlayer = () => {
     if (!isAdmin) return;
     if (!state.selectedPlayer) return;
+    if (!pelada) return;
     const idToRemove = state.selectedPlayer.id;
     setPlayers((prev) => prev.filter((p) => p.id !== idToRemove));
     setCurrentDraw(null);
     setSelectedPlayer(null);
     setShowDeleteConfirm(false);
+
+    void (async () => {
+      try {
+        await deletePlayerFromRemote(pelada.id, idToRemove);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Não foi possível excluir o jogador.", {
+          title: "Falha ao excluir",
+        });
+      }
+    })();
   };
+
+  const closeSelectedPlayer = useCallback(async () => {
+    if (!pelada) return;
+    if (!state.selectedPlayer) return;
+
+    const current = state.selectedPlayer;
+    setSelectedPlayer(null);
+    setShowDeleteConfirm(false);
+
+    if (!isAdmin) return;
+    try {
+      await upsertPlayerToRemote(pelada.id, current);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível salvar o jogador.", {
+        title: "Falha ao salvar",
+      });
+    }
+  }, [isAdmin, pelada, state.selectedPlayer, toast, upsertPlayerToRemote, setSelectedPlayer, setShowDeleteConfirm]);
 
   const updateSelectedPlayer = (
     updater: (current: Player) => Player,
@@ -362,6 +577,7 @@ export function useMainFlow(params: { pelada: Pelada | null; isAdmin: boolean })
       type: "UPDATE_SELECTED_PLAYER",
       updater,
       recalc: options?.recalcOverall,
+      sport: pelada?.sport ?? "FUTEBOL",
     });
   };
 
@@ -390,6 +606,7 @@ export function useMainFlow(params: { pelada: Pelada | null; isAdmin: boolean })
     handlePhotoUpload,
     handlePhotoLink,
     executeRemovePlayer,
+    closeSelectedPlayer,
     updateSelectedPlayer,
   };
 }

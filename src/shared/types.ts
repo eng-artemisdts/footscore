@@ -1,13 +1,6 @@
 export type Position = 'GOL' | 'ZAG' | 'LE' | 'LD' | 'VOL' | 'MEI' | 'ATA';
 
-export interface Attributes {
-  pace: number;
-  shooting: number;
-  passing: number;
-  dribbling: number;
-  defending: number;
-  physical: number;
-}
+export type Attributes = Record<string, number>;
 
 export interface Player {
   id: string;

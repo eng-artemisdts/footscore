@@ -1,26 +1,26 @@
 import React from 'react';
-import { Player } from '../types';
+import { PeladaSport, Player } from '../types';
 import { getCardRarity } from '../utils';
-import { POSITION_COLORS, ATTR_LABELS } from '../constants';
+import { POSITION_COLORS } from '../constants';
+import { getSportSchema } from "../sportSchemas";
 
 interface PlayerCardProps {
   player: Player;
   onClick?: () => void;
   isAdmin?: boolean;
+  sport?: PeladaSport;
 }
 
-export const PlayerCard: React.FC<PlayerCardProps> = ({ player, onClick, isAdmin }) => {
+export const PlayerCard: React.FC<PlayerCardProps> = ({ player, onClick, isAdmin, sport }) => {
   const rarity = getCardRarity(player.overall);
   const posColor = POSITION_COLORS[player.primaryPosition];
+  const schema = getSportSchema(sport);
 
-  const allStats = [
-    { label: ATTR_LABELS.pace, val: player.attributes.pace },
-    { label: ATTR_LABELS.shooting, val: player.attributes.shooting },
-    { label: ATTR_LABELS.passing, val: player.attributes.passing },
-    { label: ATTR_LABELS.dribbling, val: player.attributes.dribbling },
-    { label: ATTR_LABELS.defending, val: player.attributes.defending },
-    { label: ATTR_LABELS.physical, val: player.attributes.physical },
-  ];
+  const allStats = schema.attributeKeys.map((key) => ({
+    key,
+    label: schema.attributeLabels[key] ?? key,
+    val: typeof player.attributes?.[key] === "number" ? player.attributes[key] : schema.defaultAttributes[key] ?? 0,
+  }));
 
   const renderFlag = () => {
     if (player.overall >= 80) return "from-green-600 via-yellow-400 to-blue-700";
@@ -76,9 +76,9 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, onClick, isAdmin
           </h3>
         </div>
 
-        <div className="grid grid-cols-6 w-full px-4 gap-0 mb-4">
+        <div className="grid w-full px-4 gap-0 mb-4" style={{ gridTemplateColumns: `repeat(${allStats.length}, minmax(0, 1fr))` }}>
           {allStats.map(s => (
-            <div key={s.label} className="flex flex-col items-center border-r last:border-r-0 border-white/10">
+            <div key={s.key} className="flex flex-col items-center border-r last:border-r-0 border-white/10">
               <span className={`font-bold text-[9px] ${rarity.text} opacity-70 uppercase tracking-tighter`}>{s.label}</span>
               <span className={`font-black text-lg ${rarity.ovrText} drop-shadow-sm`}>{s.val}</span>
             </div>
