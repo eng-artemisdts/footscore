@@ -1,5 +1,6 @@
-import { Player, GroupSettings, Position, TeamDraw, Team } from './types';
+import { Player, GroupSettings, PeladaSport, Position, TeamDraw, Team } from './types';
 import type { SharePayload } from './types';
+import { getSportSchema } from "./sportSchemas";
 
 export const generateId = () => Math.random().toString(36).slice(2, 10);
 
@@ -80,25 +81,16 @@ export const getCardRarity = (ovr: number) => {
   };
 };
 
-export const recalcOverall = (player: Player): number => {
-  const attrs = player.attributes;
-  const WEIGHTS: Record<Position, any> = {
-    GOL: { pace: 0.1, shooting: 0.05, passing: 0.15, dribbling: 0.1, defending: 0.5, physical: 0.1 },
-    ZAG: { pace: 0.15, shooting: 0.05, passing: 0.1, dribbling: 0.1, defending: 0.45, physical: 0.15 },
-    LE: { pace: 0.25, shooting: 0.1, passing: 0.2, dribbling: 0.15, defending: 0.2, physical: 0.1 },
-    LD: { pace: 0.25, shooting: 0.1, passing: 0.2, dribbling: 0.15, defending: 0.2, physical: 0.1 },
-    VOL: { pace: 0.15, shooting: 0.1, passing: 0.25, dribbling: 0.15, defending: 0.25, physical: 0.1 },
-    MEI: { pace: 0.15, shooting: 0.2, passing: 0.3, dribbling: 0.25, defending: 0.05, physical: 0.05 },
-    ATA: { pace: 0.25, shooting: 0.35, passing: 0.1, dribbling: 0.2, defending: 0.05, physical: 0.05 }
-  };
+export const recalcOverall = (player: Player, sport: PeladaSport): number => {
+  const schema = getSportSchema(sport);
+  const weights = schema.overallWeightsByPosition[player.primaryPosition] ?? schema.overallWeightsByPosition.MEI;
+  const attrs = player.attributes ?? {};
 
-  const w = WEIGHTS[player.primaryPosition] || WEIGHTS.MEI;
-  const base = (attrs.pace * w.pace) +
-               (attrs.shooting * w.shooting) +
-               (attrs.passing * w.passing) +
-               (attrs.dribbling * w.dribbling) +
-               (attrs.defending * w.defending) +
-               (attrs.physical * w.physical);
+  const base = schema.attributeKeys.reduce((acc, key) => {
+    const w = typeof weights[key] === "number" ? weights[key] : 0;
+    const v = typeof attrs[key] === "number" ? attrs[key] : schema.defaultAttributes[key] ?? 0;
+    return acc + v * w;
+  }, 0);
 
   return Math.min(99, Math.round(base));
 };

@@ -8,6 +8,7 @@ import { RadarChart } from '@/shared/ui/RadarChart';
 import { useAuthStore } from '@/modules/auth/authStore';
 import { usePeladas } from '@/pages/peladaSelect/hooks/usePeladasStorage';
 import { useMainFlow } from './hooks/useMainFlow';
+import { getSportSchema } from '@/shared/sportSchemas';
 
 export const PeladaPage: React.FC = () => {
   const user = useAuthStore((state) => state.user);
@@ -21,6 +22,7 @@ export const PeladaPage: React.FC = () => {
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const t = TRANSLATIONS['pt'] || TRANSLATIONS['en'];
+  const sportSchema = getSportSchema(pelada?.sport);
 
   const {
     players,
@@ -47,6 +49,7 @@ export const PeladaPage: React.FC = () => {
     handlePhotoUpload,
     handlePhotoLink,
     executeRemovePlayer,
+    closeSelectedPlayer,
     updateSelectedPlayer,
   } = useMainFlow({ pelada, isAdmin });
 
@@ -187,7 +190,7 @@ export const PeladaPage: React.FC = () => {
                     <div className="absolute -top-2 -left-2 sm:-top-3 sm:-left-3 z-10 w-8 h-8 sm:w-10 h-10 bg-cyan-500 text-black font-black text-xl sm:text-2xl rounded-full flex items-center justify-center border-2 sm:border-4 border-[#050810] shadow-xl">
                       {idx + 1}
                     </div>
-                    <PlayerCard player={p} onClick={() => { setSelectedPlayer(p); setActiveTab('players'); }} />
+                    <PlayerCard sport={pelada.sport} player={p} onClick={() => { setSelectedPlayer(p); setActiveTab('players'); }} />
                   </div>
                 ))}
               </div>
@@ -241,6 +244,7 @@ export const PeladaPage: React.FC = () => {
                 {filteredPlayers.map(p => (
                   <PlayerCard
                     key={p.id}
+                    sport={pelada.sport}
                     player={p}
                     isAdmin={isAdmin}
                     onClick={() => setSelectedPlayer(p)}
@@ -358,7 +362,12 @@ export const PeladaPage: React.FC = () => {
 
       {selectedPlayer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
-          <div className="absolute inset-0 bg-black/95 backdrop-blur-2xl animate-in fade-in duration-500" onClick={() => { if (!showDeleteConfirm) setSelectedPlayer(null); }} />
+          <div
+            className="absolute inset-0 bg-black/95 backdrop-blur-2xl animate-in fade-in duration-500"
+            onClick={() => {
+              if (!showDeleteConfirm) void closeSelectedPlayer();
+            }}
+          />
 
           <div className="relative bg-[#0c1220] border border-white/10 rounded-[30px] sm:rounded-[60px] w-full max-w-6xl max-h-[96vh] overflow-hidden flex flex-col md:flex-row shadow-2xl animate-in zoom-in-95 duration-400">
             <div className="w-full md:w-[42%] p-6 sm:p-12 bg-gradient-to-b from-white/[0.04] to-transparent flex flex-col items-center border-b md:border-b-0 md:border-r border-white/5 overflow-y-auto custom-scrollbar">
@@ -367,7 +376,7 @@ export const PeladaPage: React.FC = () => {
               </div>
 
               <div className="w-full max-w-[240px] sm:max-w-[320px] aspect-square mb-6 sm:mb-12">
-                <RadarChart attributes={selectedPlayer.attributes} color="#22d3ee" />
+                <RadarChart sport={pelada.sport} attributes={selectedPlayer.attributes} color="#22d3ee" />
               </div>
 
               {isAdmin && (
@@ -415,6 +424,11 @@ export const PeladaPage: React.FC = () => {
                     <h2 className="text-3xl sm:text-6xl font-black p-0 mb-3 sm:mb-4 w-full text-white tracking-tighter uppercase">
                       {selectedPlayer.nick}
                     </h2>
+                  )}
+                  {!isAdmin && (
+                    <div className="text-[9px] sm:text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-4 sm:mb-6">
+                      Somente o admin pode editar jogadores
+                    </div>
                   )}
                   <div className="flex flex-wrap gap-1.5 sm:gap-2">
                     {POSITIONS.map(pos => (
@@ -467,26 +481,26 @@ export const PeladaPage: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 sm:gap-x-16 gap-y-8 sm:gap-y-12 mb-12 sm:mb-20">
-                {(Object.keys(selectedPlayer.attributes) as Array<keyof typeof selectedPlayer.attributes>).map((key) => (
-                  <div key={String(key)} className="group">
+                {sportSchema.attributeKeys.map((key) => (
+                  <div key={key} className="group">
                     <div className="flex justify-between items-center mb-3 sm:mb-4">
                       <label className="text-[8px] sm:text-[10px] font-black text-white/20 uppercase tracking-[0.2em] group-hover:text-cyan-400 transition-colors">
-                        {t[`attr.${String(key)}`] || String(key)}
+                        {t[`attr.${String(key)}`] || sportSchema.attributeLabels[key] || String(key)}
                       </label>
-                      <span className="font-black text-2xl sm:text-3xl text-cyan-400">{selectedPlayer.attributes[key]}</span>
+                      <span className="font-black text-2xl sm:text-3xl text-cyan-400">{selectedPlayer.attributes[key] ?? sportSchema.defaultAttributes[key] ?? 0}</span>
                     </div>
                     {isAdmin ? (
                       <input
                         type="range"
                         min="0"
                         max="99"
-                        value={selectedPlayer.attributes[key]}
-                        onChange={(e) => updatePlayerAttribute(selectedPlayer.id, String(key), parseInt(e.target.value))}
+                        value={selectedPlayer.attributes[key] ?? sportSchema.defaultAttributes[key] ?? 0}
+                        onChange={(e) => updatePlayerAttribute(selectedPlayer.id, key, parseInt(e.target.value))}
                         className="w-full h-1.5 sm:h-2 bg-white/5 rounded-full appearance-none cursor-pointer accent-cyan-500 focus:outline-none"
                       />
                     ) : (
                       <div className="w-full h-1.5 sm:h-2 bg-white/5 rounded-full overflow-hidden">
-                        <div className="h-full bg-cyan-500/50 rounded-full" style={{ width: `${selectedPlayer.attributes[key]}%` }} />
+                        <div className="h-full bg-cyan-500/50 rounded-full" style={{ width: `${selectedPlayer.attributes[key] ?? sportSchema.defaultAttributes[key] ?? 0}%` }} />
                       </div>
                     )}
                   </div>
@@ -511,10 +525,10 @@ export const PeladaPage: React.FC = () => {
                 )}
 
                 <button
-                  onClick={() => setSelectedPlayer(null)}
+                  onClick={() => void closeSelectedPlayer()}
                   className="w-full sm:w-auto bg-white text-black px-12 sm:px-16 py-4 sm:py-5 rounded-2xl sm:rounded-[28px] font-black text-xs sm:text-sm tracking-widest hover:bg-cyan-400 hover:scale-[1.02] transition-all shadow-2xl"
                 >
-                  FECHAR E SALVAR
+                  {isAdmin ? "FECHAR E SALVAR" : "FECHAR"}
                 </button>
               </div>
             </div>

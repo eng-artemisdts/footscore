@@ -7,6 +7,7 @@ import { PitchSVG } from '@/shared/ui/PitchSVG';
 import { PlayerCard } from '@/shared/ui/PlayerCard';
 import { useAuthStore } from '@/modules/auth/authStore';
 import { joinPelada } from '@/modules/peladas/joinPelada';
+import { useToast } from '@/shared/ui/ToastProvider';
 
 interface ViewData {
   peladaId: string | null;
@@ -35,6 +36,7 @@ export const ViewOnlyPage: React.FC = () => {
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
   const location = useLocation();
+  const toast = useToast();
   const [data] = useState<ViewData | null>(getInitialViewData);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'players' | 'draw'>('dashboard');
   const joinPromptedRef = useRef(false);
@@ -78,12 +80,14 @@ export const ViewOnlyPage: React.FC = () => {
         const targetSlug = slugFromPath || peladaSlug(data.peladaName);
         navigate(`/pelada/${targetSlug}`, { replace: true });
       } catch (e) {
-        alert(e instanceof Error ? e.message : 'Não foi possível entrar na pelada.');
+        toast.error(e instanceof Error ? e.message : 'Não foi possível entrar na pelada.', {
+          title: 'Falha ao entrar',
+        });
       }
     };
 
     void run();
-  }, [data?.peladaId, data?.peladaName, navigate, slugFromPath, user?.id]);
+  }, [data?.peladaId, data?.peladaName, navigate, slugFromPath, toast, user?.id]);
 
   const topPlayers = useMemo(() => {
     if (!data?.players.length) return [];

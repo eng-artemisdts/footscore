@@ -9,6 +9,7 @@ import { env } from "@/shared/env";
 import { joinPelada } from "@/modules/peladas/joinPelada";
 import { CreatePeladaModal } from "./components/CreatePeladaModal";
 import { savePelada, usePeladas } from "./hooks/usePeladasStorage";
+import { useToast } from "@/shared/ui/ToastProvider";
 
 const PENDING_PELADA_JOIN_KEY = "pending_pelada_join";
 
@@ -16,6 +17,7 @@ export const PeladaSelectPage: React.FC = () => {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
+  const toast = useToast();
   const [showModal, setShowModal] = useState(false);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
   const [upgradeError, setUpgradeError] = useState<string | null>(null);
@@ -89,12 +91,14 @@ export const PeladaSelectPage: React.FC = () => {
         const targetSlug = slug || peladaSlug(peladaName);
         navigate(`/pelada/${targetSlug}`, { replace: true });
       } catch (e) {
-        alert(e instanceof Error ? e.message : "Não foi possível entrar na pelada.");
+        toast.error(e instanceof Error ? e.message : "Não foi possível entrar na pelada.", {
+          title: "Falha ao entrar",
+        });
       }
     };
 
     void run();
-  }, [navigate, user?.id]);
+  }, [navigate, toast, user?.id]);
 
   const { peladas, loading: peladasLoading } = usePeladas(user.id, showModal);
   const isPro = user.plan === "pro";
