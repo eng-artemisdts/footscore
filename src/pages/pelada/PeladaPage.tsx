@@ -416,6 +416,11 @@ export const PeladaPage: React.FC = () => {
                       {selectedPlayer.nick}
                     </h2>
                   )}
+                  {!isAdmin && (
+                    <div className="text-[9px] sm:text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-4 sm:mb-6">
+                      Somente o admin pode editar jogadores
+                    </div>
+                  )}
                   <div className="flex flex-wrap gap-1.5 sm:gap-2">
                     {POSITIONS.map(pos => (
                       isAdmin ? (
@@ -514,7 +519,7 @@ export const PeladaPage: React.FC = () => {
                   onClick={() => setSelectedPlayer(null)}
                   className="w-full sm:w-auto bg-white text-black px-12 sm:px-16 py-4 sm:py-5 rounded-2xl sm:rounded-[28px] font-black text-xs sm:text-sm tracking-widest hover:bg-cyan-400 hover:scale-[1.02] transition-all shadow-2xl"
                 >
-                  FECHAR E SALVAR
+                  {isAdmin ? "FECHAR E SALVAR" : "FECHAR"}
                 </button>
               </div>
             </div>
