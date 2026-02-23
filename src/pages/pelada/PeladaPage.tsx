@@ -1,174 +1,70 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Player, TeamDraw, User, Pelada } from '../types';
-import { POSITIONS, TRANSLATIONS } from '../constants';
-import { generateId, drawTeams, recalcOverall, encodeSharePayload } from '../utils';
-import { PlayerCard } from './PlayerCard';
-import { PitchSVG } from './PitchSVG';
-import { RadarChart } from './RadarChart';
+import React, { useRef } from 'react';
+import { Link, Navigate, useParams } from 'react-router-dom';
+import { POSITIONS, TRANSLATIONS } from '@/shared/constants';
+import { peladaSlug } from '@/shared/utils';
+import { PitchSVG } from '@/shared/ui/PitchSVG';
+import { PlayerCard } from '@/shared/ui/PlayerCard';
+import { RadarChart } from '@/shared/ui/RadarChart';
+import { useAuthStore } from '@/modules/auth/authStore';
+import { getPeladas } from '@/pages/peladaSelect/hooks/usePeladasStorage';
+import { useMainFlow } from './hooks/useMainFlow';
 
-const PLAYERS_STORAGE_KEY = (peladaId: string) => `pelada_players_${peladaId}`;
+export const PeladaPage: React.FC = () => {
+  const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
+  const { peladaSlug: slugParam } = useParams<{ peladaSlug: string }>();
 
-interface MainFlowProps {
-  user: User;
-  pelada: Pelada;
-  onLogout: () => void;
-}
+  if (!user) return <Navigate to="/" replace />;
 
-export const MainFlow: React.FC<MainFlowProps> = ({ user, pelada, onLogout }) => {
-  const [players, setPlayers] = useState<Player[]>(() => {
-    const saved = localStorage.getItem(PLAYERS_STORAGE_KEY(pelada.id));
-    return saved ? JSON.parse(saved) : [];
-  });
+  const peladas = getPeladas(user.id);
+  const found = slugParam ? peladas.find((p) => peladaSlug(p.name) === slugParam) : undefined;
+  const pelada = found || null;
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'players' | 'events' | 'draw'>('dashboard');
-  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
-  const [currentDraw, setCurrentDraw] = useState<TeamDraw | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [shareCopied, setShareCopied] = useState(false);
+  if (!pelada) {
+    return <Navigate to="/pelada" replace />;
+  }
+
+  const isAdmin = useAuthStore((state) => state.isAdminForPelada(pelada.userId));
   const fileInputRef = useRef<HTMLInputElement>(null);
-
   const t = TRANSLATIONS['pt'] || TRANSLATIONS['en'];
 
-  const handleShare = () => {
-    const payload = {
-      n: pelada.name,
-      p: players,
-      d: currentDraw,
-      t: Date.now(),
-    };
-    const encoded = encodeSharePayload(payload);
-    const url = `${window.location.origin}${window.location.pathname.replace(/\/$/, '')}/view#${encoded}`;
-    navigator.clipboard.writeText(url).then(
-      () => {
-        setShareCopied(true);
-        setTimeout(() => setShareCopied(false), 2500);
-      },
-      () => alert('Não foi possível copiar o link.')
-    );
-  };
-
-  useEffect(() => {
-    localStorage.setItem(PLAYERS_STORAGE_KEY(pelada.id), JSON.stringify(players));
-  }, [players, pelada.id]);
-
-  const topPlayers = useMemo(() => {
-    return [...players]
-      .sort((a, b) => b.overall - a.overall)
-      .slice(0, 5);
-  }, [players]);
-
-  const filteredPlayers = useMemo(() => {
-    return players.filter(p =>
-      p.nick.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.primaryPosition.toLowerCase().includes(searchQuery.toLowerCase())
-    ).sort((a, b) => b.overall - a.overall);
-  }, [players, searchQuery]);
-
-  const avgOverall = useMemo(() => {
-    return players.length ? Math.round(players.reduce((acc, p) => acc + p.overall, 0) / players.length) : 0;
-  }, [players]);
-
-  const handleAddPlayer = () => {
-    const newPlayer: Player = {
-      id: generateId(),
-      userId: null,
-      displayName: 'Novo Jogador',
-      nick: 'CRAQUE ' + (players.length + 1),
-      photoUrl: null,
-      primaryPosition: 'MEI',
-      secondaryPosition: null,
-      dominantFoot: 'DIREITO',
-      presenceCount: 0,
-      attributes: {
-        pace: 70,
-        shooting: 70,
-        passing: 70,
-        dribbling: 70,
-        defending: 70,
-        physical: 70,
-      },
-      overall: 70,
-    };
-    newPlayer.overall = recalcOverall(newPlayer);
-    setCurrentDraw(null);
-    setPlayers(prev => [...prev, newPlayer]);
-    setSelectedPlayer(newPlayer);
-  };
-
-  const handleDraw = () => {
-    if (players.length < 2) {
-      alert("Adicione pelo menos 2 jogadores.");
-      return;
-    }
-    const draw = drawTeams(players, 2, 'event-' + Date.now());
-    setCurrentDraw(draw);
-    setActiveTab('draw');
-  };
-
-  const updatePlayerAttribute = (playerId: string, attr: keyof Player['attributes'], value: number) => {
-    setPlayers(prev => prev.map(p => {
-      if (p.id === playerId) {
-        const updatedAttrs = { ...p.attributes, [attr]: value };
-        const updatedPlayer = { ...p, attributes: updatedAttrs };
-        updatedPlayer.overall = recalcOverall(updatedPlayer);
-        if (selectedPlayer?.id === playerId) {
-          setSelectedPlayer(updatedPlayer);
-        }
-        return updatedPlayer;
-      }
-      return p;
-    }));
-  };
-
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && selectedPlayer) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setPlayers(prev => prev.map(p => {
-          if (p.id === selectedPlayer.id) {
-            const updated = { ...p, photoUrl: base64String };
-            setSelectedPlayer(updated);
-            return updated;
-          }
-          return p;
-        }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handlePhotoLink = (url: string) => {
-    if (selectedPlayer && url) {
-      setPlayers(prev => prev.map(p => {
-        if (p.id === selectedPlayer.id) {
-          const updated = { ...p, photoUrl: url };
-          setSelectedPlayer(updated);
-          return updated;
-        }
-        return p;
-      }));
-    }
-  };
-
-  const executeRemovePlayer = () => {
-    if (!selectedPlayer) return;
-    const idToRemove = selectedPlayer.id;
-    setPlayers(prev => prev.filter(p => p.id !== idToRemove));
-    setCurrentDraw(null);
-    setSelectedPlayer(null);
-    setShowDeleteConfirm(false);
-  };
+  const {
+    players,
+    setPlayers,
+    activeTab,
+    setActiveTab,
+    selectedPlayer,
+    setSelectedPlayer,
+    currentDraw,
+    setCurrentDraw,
+    showDeleteConfirm,
+    setShowDeleteConfirm,
+    searchQuery,
+    setSearchQuery,
+    shareCopied,
+    topPlayers,
+    filteredPlayers,
+    avgOverall,
+    handleShare,
+    handleAddPlayer,
+    handleDraw,
+    updatePlayerAttribute,
+    handlePhotoUpload,
+    handlePhotoLink,
+    executeRemovePlayer,
+    updateSelectedPlayer,
+  } = useMainFlow({ pelada, isAdmin });
 
   const handleLogout = () => {
-    onLogout();
+    logout();
   };
 
   return (
-    <div className="min-h-screen bg-[#050810] text-white selection:bg-cyan-500/30 pb-20 font-normal">
+    <div className="min-h-screen bg-[#050810] text-white selection:bg-cyan-500/30 pb-20 font-normal relative overflow-x-hidden">
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[-20%] left-[-10%] w-[60%] aspect-square bg-cyan-600/10 blur-[150px] rounded-full" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] aspect-square bg-blue-600/10 blur-[150px] rounded-full" />
+      </div>
       <header className="border-b border-white/5 bg-black/40 backdrop-blur-xl sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-3">
@@ -226,7 +122,7 @@ export const MainFlow: React.FC<MainFlowProps> = ({ user, pelada, onLogout }) =>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10 relative z-10">
         {activeTab === 'dashboard' && (
           <div className="animate-in fade-in duration-700">
             <div className="flex flex-col sm:flex-row items-center gap-4 mb-10">
@@ -248,9 +144,12 @@ export const MainFlow: React.FC<MainFlowProps> = ({ user, pelada, onLogout }) =>
                 <span className="text-[9px] sm:text-[10px] font-black text-white/20 uppercase tracking-[0.2em] mb-1 sm:mb-2">{t['dashboard.avg_overall']}</span>
                 <span className="text-4xl sm:text-6xl font-black text-cyan-400">{avgOverall}</span>
               </div>
-              <div className="bg-gradient-to-br from-cyan-600/20 to-blue-600/20 border border-cyan-500/20 p-6 sm:p-8 rounded-[24px] sm:rounded-[32px] flex flex-col items-center justify-center cursor-pointer hover:scale-[1.02] transition-transform" onClick={() => setActiveTab('players')}>
+              <div
+                className={`border border-cyan-500/20 p-6 sm:p-8 rounded-[24px] sm:rounded-[32px] flex flex-col items-center justify-center transition-transform ${isAdmin ? 'bg-gradient-to-br from-cyan-600/20 to-blue-600/20 cursor-pointer hover:scale-[1.02]' : 'bg-white/[0.03] cursor-default'}`}
+                onClick={() => isAdmin && setActiveTab('players')}
+              >
                 <span className="text-[9px] sm:text-[10px] font-black text-cyan-400 uppercase tracking-[0.2em] mb-1 sm:mb-2">Ação Rápida</span>
-                <span className="text-lg sm:text-xl font-black uppercase tracking-tight text-white">+ NOVO JOGADOR</span>
+                <span className="text-lg sm:text-xl font-black uppercase tracking-tight text-white">{isAdmin ? '+ NOVO JOGADOR' : 'Visualize o elenco'}</span>
               </div>
             </div>
 
@@ -309,12 +208,14 @@ export const MainFlow: React.FC<MainFlowProps> = ({ user, pelada, onLogout }) =>
                   </p>
                 </div>
               </div>
-              <button
-                onClick={handleAddPlayer}
-                className="bg-cyan-500 hover:bg-cyan-400 text-black px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black uppercase text-[10px] sm:text-xs tracking-widest transition-all shadow-xl shadow-cyan-500/30 flex items-center justify-center gap-2 group"
-              >
-                <span className="text-lg group-hover:rotate-90 transition-transform">+</span> {t['players.add']}
-              </button>
+              {isAdmin && (
+                <button
+                  onClick={handleAddPlayer}
+                  className="bg-cyan-500 hover:bg-cyan-400 text-black px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black uppercase text-[10px] sm:text-xs tracking-widest transition-all shadow-xl shadow-cyan-500/30 flex items-center justify-center gap-2 group"
+                >
+                  <span className="text-lg group-hover:rotate-90 transition-transform">+</span> {t['players.add']}
+                </button>
+              )}
             </div>
 
             {filteredPlayers.length > 0 ? (
@@ -323,7 +224,7 @@ export const MainFlow: React.FC<MainFlowProps> = ({ user, pelada, onLogout }) =>
                   <PlayerCard
                     key={p.id}
                     player={p}
-                    isAdmin
+                    isAdmin={isAdmin}
                     onClick={() => setSelectedPlayer(p)}
                   />
                 ))}
@@ -444,120 +345,152 @@ export const MainFlow: React.FC<MainFlowProps> = ({ user, pelada, onLogout }) =>
           <div className="relative bg-[#0c1220] border border-white/10 rounded-[30px] sm:rounded-[60px] w-full max-w-6xl max-h-[96vh] overflow-hidden flex flex-col md:flex-row shadow-2xl animate-in zoom-in-95 duration-400">
             <div className="w-full md:w-[42%] p-6 sm:p-12 bg-gradient-to-b from-white/[0.04] to-transparent flex flex-col items-center border-b md:border-b-0 md:border-r border-white/5 overflow-y-auto custom-scrollbar">
               <div className="w-full aspect-[3/4] max-w-[200px] sm:max-w-[280px] mb-6 sm:mb-12 shadow-2xl">
-                <PlayerCard player={selectedPlayer} />
+                <PlayerCard player={selectedPlayer} isAdmin={isAdmin} />
               </div>
 
               <div className="w-full max-w-[240px] sm:max-w-[320px] aspect-square mb-6 sm:mb-12">
                 <RadarChart attributes={selectedPlayer.attributes} color="#22d3ee" />
               </div>
 
-              <div className="w-full space-y-3 sm:space-y-4">
-                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handlePhotoUpload} />
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full py-3.5 sm:py-4 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:bg-cyan-500 hover:text-black transition-all flex items-center justify-center gap-2 sm:gap-3"
-                >
-                  <span>📷</span> {t['photo.upload']}
-                </button>
-                <div className="relative">
+              {isAdmin && (
+                <div className="w-full space-y-3 sm:space-y-4">
                   <input
-                    type="text"
-                    placeholder={t['photo.link']}
-                    className="w-full py-3.5 sm:py-4 bg-black/30 border border-white/5 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-bold px-10 sm:px-12 focus:outline-none focus:border-cyan-500/50 transition-all text-white/80"
-                    onBlur={(e) => handlePhotoLink(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handlePhotoLink((e.target as HTMLInputElement).value)}
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept="image/*"
+                    onChange={(e) => handlePhotoUpload(e.target.files?.[0])}
                   />
-                  <span className="absolute left-3.5 sm:left-4 top-1/2 -translate-y-1/2 opacity-30">🔗</span>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full py-3.5 sm:py-4 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:bg-cyan-500 hover:text-black transition-all flex items-center justify-center gap-2 sm:gap-3"
+                  >
+                    <span>📷</span> {t['photo.upload']}
+                  </button>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder={t['photo.link']}
+                      className="w-full py-3.5 sm:py-4 bg-black/30 border border-white/5 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-bold px-10 sm:px-12 focus:outline-none focus:border-cyan-500/50 transition-all text-white/80"
+                      onBlur={(e) => handlePhotoLink(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handlePhotoLink((e.target as HTMLInputElement).value)}
+                    />
+                    <span className="absolute left-3.5 sm:left-4 top-1/2 -translate-y-1/2 opacity-30">🔗</span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <div className="w-full md:w-[58%] p-6 sm:p-12 overflow-y-auto custom-scrollbar">
               <div className="flex justify-between items-start mb-8 sm:mb-16">
                 <div className="flex-1 pr-4">
-                  <input
-                    type="text"
-                    value={selectedPlayer.nick}
-                    onChange={(e) => {
-                      const updated = { ...selectedPlayer, nick: e.target.value.toUpperCase() };
-                      setPlayers(prev => prev.map(p => p.id === updated.id ? updated : p));
-                      setSelectedPlayer(updated);
-                    }}
-                    className="text-3xl sm:text-6xl font-black bg-transparent border-none focus:ring-0 p-0 mb-3 sm:mb-4 w-full text-white outline-none tracking-tighter uppercase"
-                  />
+                  {isAdmin ? (
+                    <input
+                      type="text"
+                      value={selectedPlayer.nick}
+                      onChange={(e) => {
+                        updateSelectedPlayer((p) => ({ ...p, nick: e.target.value.toUpperCase() }));
+                      }}
+                      className="text-3xl sm:text-6xl font-black bg-transparent border-none focus:ring-0 p-0 mb-3 sm:mb-4 w-full text-white outline-none tracking-tighter uppercase"
+                    />
+                  ) : (
+                    <h2 className="text-3xl sm:text-6xl font-black p-0 mb-3 sm:mb-4 w-full text-white tracking-tighter uppercase">
+                      {selectedPlayer.nick}
+                    </h2>
+                  )}
                   <div className="flex flex-wrap gap-1.5 sm:gap-2">
                     {POSITIONS.map(pos => (
-                      <button
-                        key={pos}
-                        onClick={() => {
-                          const updated = { ...selectedPlayer, primaryPosition: pos };
-                          updated.overall = recalcOverall(updated);
-                          setPlayers(prev => prev.map(p => p.id === updated.id ? updated : p));
-                          setSelectedPlayer(updated);
-                        }}
-                        className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[8px] sm:text-[10px] font-black transition-all ${
-                          selectedPlayer.primaryPosition === pos
-                            ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/30 scale-105'
-                            : 'bg-white/5 text-white/30 hover:bg-white/10'
-                        }`}
-                      >
-                        {pos}
-                      </button>
+                      isAdmin ? (
+                        <button
+                          key={pos}
+                          onClick={() => {
+                            updateSelectedPlayer((p) => ({ ...p, primaryPosition: pos }), { recalcOverall: true });
+                          }}
+                          className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[8px] sm:text-[10px] font-black transition-all ${
+                            selectedPlayer.primaryPosition === pos
+                              ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/30 scale-105'
+                              : 'bg-white/5 text-white/30 hover:bg-white/10'
+                          }`}
+                        >
+                          {pos}
+                        </button>
+                      ) : (
+                        <span
+                          key={pos}
+                          className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[8px] sm:text-[10px] font-black ${
+                            selectedPlayer.primaryPosition === pos ? 'bg-cyan-500/20 text-cyan-400' : 'bg-white/5 text-white/30'
+                          }`}
+                        >
+                          {pos}
+                        </span>
+                      )
                     ))}
                   </div>
                 </div>
 
-                {!showDeleteConfirm ? (
-                  <button
-                    onClick={() => setShowDeleteConfirm(true)}
-                    className="bg-red-500/10 hover:bg-red-500/30 text-red-500 px-4 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-[9px] sm:text-[11px] font-black uppercase tracking-widest transition-all"
-                  >
-                    Excluir
-                  </button>
-                ) : (
-                  <div className="flex flex-col items-end gap-1.5 sm:gap-2 animate-in slide-in-from-right-4">
-                    <span className="text-[8px] sm:text-[10px] font-black text-red-400 uppercase">Confirmar?</span>
-                    <div className="flex gap-1.5 sm:gap-2">
-                      <button onClick={executeRemovePlayer} className="bg-red-600 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[8px] sm:text-[10px] font-black uppercase">SIM</button>
-                      <button onClick={() => setShowDeleteConfirm(false)} className="bg-white/10 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[8px] sm:text-[10px] font-black uppercase">NÃO</button>
+                {isAdmin && (
+                  !showDeleteConfirm ? (
+                    <button
+                      onClick={() => setShowDeleteConfirm(true)}
+                      className="bg-red-500/10 hover:bg-red-500/30 text-red-500 px-4 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-[9px] sm:text-[11px] font-black uppercase tracking-widest transition-all"
+                    >
+                      Excluir
+                    </button>
+                  ) : (
+                    <div className="flex flex-col items-end gap-1.5 sm:gap-2 animate-in slide-in-from-right-4">
+                      <span className="text-[8px] sm:text-[10px] font-black text-red-400 uppercase">Confirmar?</span>
+                      <div className="flex gap-1.5 sm:gap-2">
+                        <button onClick={executeRemovePlayer} className="bg-red-600 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[8px] sm:text-[10px] font-black uppercase">SIM</button>
+                        <button onClick={() => setShowDeleteConfirm(false)} className="bg-white/10 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[8px] sm:text-[10px] font-black uppercase">NÃO</button>
+                      </div>
                     </div>
-                  </div>
+                  )
                 )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 sm:gap-x-16 gap-y-8 sm:gap-y-12 mb-12 sm:mb-20">
-                {Object.entries(selectedPlayer.attributes).map(([key, val]) => (
-                  <div key={key} className="group">
+                {(Object.keys(selectedPlayer.attributes) as Array<keyof typeof selectedPlayer.attributes>).map((key) => (
+                  <div key={String(key)} className="group">
                     <div className="flex justify-between items-center mb-3 sm:mb-4">
                       <label className="text-[8px] sm:text-[10px] font-black text-white/20 uppercase tracking-[0.2em] group-hover:text-cyan-400 transition-colors">
-                        {t[`attr.${key}`] || key}
+                        {t[`attr.${String(key)}`] || String(key)}
                       </label>
-                      <span className="font-black text-2xl sm:text-3xl text-cyan-400">{val}</span>
+                      <span className="font-black text-2xl sm:text-3xl text-cyan-400">{selectedPlayer.attributes[key]}</span>
                     </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="99"
-                      value={val}
-                      onChange={(e) => updatePlayerAttribute(selectedPlayer.id, key as keyof Player['attributes'], parseInt(e.target.value))}
-                      className="w-full h-1.5 sm:h-2 bg-white/5 rounded-full appearance-none cursor-pointer accent-cyan-500 focus:outline-none"
-                    />
+                    {isAdmin ? (
+                      <input
+                        type="range"
+                        min="0"
+                        max="99"
+                        value={selectedPlayer.attributes[key]}
+                        onChange={(e) => updatePlayerAttribute(selectedPlayer.id, String(key), parseInt(e.target.value))}
+                        className="w-full h-1.5 sm:h-2 bg-white/5 rounded-full appearance-none cursor-pointer accent-cyan-500 focus:outline-none"
+                      />
+                    ) : (
+                      <div className="w-full h-1.5 sm:h-2 bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-full bg-cyan-500/50 rounded-full" style={{ width: `${selectedPlayer.attributes[key]}%` }} />
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
 
               <div className="flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-6 pt-8 sm:pt-12 border-t border-white/5">
-                <button
-                  onClick={() => {
-                    const nextFoot = selectedPlayer.dominantFoot === 'DIREITO' ? 'ESQUERDO' : selectedPlayer.dominantFoot === 'ESQUERDO' ? 'AMBOS' : 'DIREITO';
-                    const updated = { ...selectedPlayer, dominantFoot: nextFoot as 'DIREITO' | 'ESQUERDO' | 'AMBOS' };
-                    setPlayers(prev => prev.map(p => p.id === updated.id ? updated : p));
-                    setSelectedPlayer(updated);
-                  }}
-                  className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition"
-                >
-                  Pé: {selectedPlayer.dominantFoot}
-                </button>
+                {isAdmin ? (
+                  <button
+                    onClick={() => {
+                      const nextFoot = selectedPlayer.dominantFoot === 'DIREITO' ? 'ESQUERDO' : selectedPlayer.dominantFoot === 'ESQUERDO' ? 'AMBOS' : 'DIREITO';
+                      updateSelectedPlayer((p) => ({ ...p, dominantFoot: nextFoot as 'DIREITO' | 'ESQUERDO' | 'AMBOS' }));
+                    }}
+                    className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition"
+                  >
+                    Pé: {selectedPlayer.dominantFoot}
+                  </button>
+                ) : (
+                  <span className="text-[9px] sm:text-[10px] font-black text-white/40 uppercase tracking-widest">
+                    Pé: {selectedPlayer.dominantFoot}
+                  </span>
+                )}
 
                 <button
                   onClick={() => setSelectedPlayer(null)}
@@ -579,3 +512,4 @@ export const MainFlow: React.FC<MainFlowProps> = ({ user, pelada, onLogout }) =>
     </div>
   );
 };
+

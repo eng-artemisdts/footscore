@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { TeamDraw, Position, Player } from '../types';
 
@@ -19,7 +18,7 @@ export const PitchSVG: React.FC<PitchSVGProps> = ({ draw }) => {
   const renderPlayer = (player: Player, teamColor: string, isBottom: boolean, x: number, y: number) => {
     const fieldPadding = 8;
     const halfHeight = 36;
-    
+
     let finalY: number;
     if (isBottom) {
       const relativeY = (y / 100) * halfHeight;
@@ -32,22 +31,22 @@ export const PitchSVG: React.FC<PitchSVGProps> = ({ draw }) => {
     return (
       <g key={player.id} className="animate-fade-in-up">
         <circle cx={`${x}%`} cy={`${finalY + 0.8}%`} r="3.2" fill="black" opacity="0.3" />
-        <circle 
-          cx={`${x}%`} 
-          cy={`${finalY}%`} 
-          r="3.2" 
-          fill={teamColor} 
-          stroke="white" 
-          strokeWidth="0.8" 
+        <circle
+          cx={`${x}%`}
+          cy={`${finalY}%`}
+          r="3.2"
+          fill={teamColor}
+          stroke="white"
+          strokeWidth="0.8"
           className="transition-all duration-700 ease-out shadow-xl"
         />
-        <text 
-          x={`${x}%`} 
-          y={`${finalY}%`} 
-          dy="1.2" 
-          textAnchor="middle" 
-          fill="white" 
-          fontSize="3.2" 
+        <text
+          x={`${x}%`}
+          y={`${finalY}%`}
+          dy="1.2"
+          textAnchor="middle"
+          fill="white"
+          fontSize="3.2"
           fontWeight="900"
           className="pointer-events-none select-none"
           style={{ fontFamily: 'Poppins, sans-serif' }}
@@ -56,21 +55,21 @@ export const PitchSVG: React.FC<PitchSVGProps> = ({ draw }) => {
         </text>
 
         <g transform={`translate(0, ${isBottom ? 5.5 : -8.5})`}>
-          <rect 
-            x={`${x - 9}%`} 
-            y={`${finalY}%`} 
-            width="18" 
-            height="4.5" 
-            rx="1" 
-            fill="rgba(0,0,0,0.85)" 
+          <rect
+            x={`${x - 9}%`}
+            y={`${finalY}%`}
+            width="18"
+            height="4.5"
+            rx="1"
+            fill="rgba(0,0,0,0.85)"
             className="pointer-events-none"
           />
-          <text 
-            x={`${x}%`} 
-            y={`${finalY + 3.2}%`} 
-            textAnchor="middle" 
-            fill="white" 
-            fontSize="2.4" 
+          <text
+            x={`${x}%`}
+            y={`${finalY + 3.2}%`}
+            textAnchor="middle"
+            fill="white"
+            fontSize="2.4"
             fontWeight="800"
             className="pointer-events-none uppercase tracking-tight select-none"
             style={{ fontFamily: 'Poppins, sans-serif' }}
@@ -93,7 +92,7 @@ export const PitchSVG: React.FC<PitchSVGProps> = ({ draw }) => {
     return rows.flatMap((playersInRow, rowIndex) => {
       const totalInRow = playersInRow.length;
       const y = rowYPositions[rowIndex];
-      
+
       return playersInRow.map((p, i) => {
         let x = 50;
         if (totalInRow > 1) {
@@ -110,7 +109,7 @@ export const PitchSVG: React.FC<PitchSVGProps> = ({ draw }) => {
     <div className="relative w-full aspect-[3/4] bg-gradient-to-b from-[#143d14] to-[#0a1f0a] border-4 border-white/10 rounded-[40px] overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)]">
       <div className="absolute inset-0 opacity-20 pointer-events-none bg-[linear-gradient(to_bottom,transparent_49%,rgba(255,255,255,0.1)_50%)] bg-[length:100%_10%]" />
       <div className="absolute inset-0 opacity-5 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/grass.png')]" />
-      
+
       <svg className="w-full h-full relative z-10" viewBox="0 0 100 100" preserveAspectRatio="none">
         <rect x="5" y="5" width="90" height="90" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.8" />
         <line x1="5" y1="50" x2="95" y2="50" stroke="rgba(255,255,255,0.4)" strokeWidth="0.8" />
@@ -131,3 +130,4 @@ export const PitchSVG: React.FC<PitchSVGProps> = ({ draw }) => {
     </div>
   );
 };
+

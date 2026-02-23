@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { Attributes } from '../types';
 import { ATTR_LABELS } from '../constants';
@@ -48,3 +47,4 @@ export const RadarChart: React.FC<RadarChartProps> = ({ attributes, color }) => 
     </svg>
   );
 };
+

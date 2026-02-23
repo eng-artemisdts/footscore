@@ -33,6 +33,7 @@ lerna-debug.log*
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
+.cursor/rules/
 .idea
 *.suo
 *.ntvs*
@@ -51,3 +52,5 @@ coverage
 # Optional
 *.pem
 .vercel
+.temp
+*.md

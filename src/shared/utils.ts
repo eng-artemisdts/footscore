@@ -1,4 +1,3 @@
-
 import { Player, GroupSettings, Position, TeamDraw, Team } from './types';
 import type { SharePayload } from './types';
 
@@ -46,8 +45,8 @@ export const getOverallColor = (ovr: number) => {
 };
 
 export const getCardRarity = (ovr: number) => {
-  if (ovr >= 80) return { 
-    bg: 'from-[#1e150a] via-[#5d4718] to-[#1e150a]', 
+  if (ovr >= 80) return {
+    bg: 'from-[#1e150a] via-[#5d4718] to-[#1e150a]',
     border: 'border-yellow-400',
     ornament: 'border-yellow-500/40',
     innerOrnament: 'border-yellow-200/20',
@@ -56,9 +55,9 @@ export const getCardRarity = (ovr: number) => {
     footerBg: 'from-black via-black/80 to-transparent',
     glow: 'shadow-yellow-500/20'
   };
-  
-  if (ovr >= 60) return { 
-    bg: 'from-[#1a1c22] via-[#4a5061] to-[#1a1c22]', 
+
+  if (ovr >= 60) return {
+    bg: 'from-[#1a1c22] via-[#4a5061] to-[#1a1c22]',
     border: 'border-slate-300',
     ornament: 'border-slate-400/40',
     innerOrnament: 'border-slate-100/20',
@@ -67,9 +66,9 @@ export const getCardRarity = (ovr: number) => {
     footerBg: 'from-black via-black/80 to-transparent',
     glow: 'shadow-slate-300/15'
   };
-  
-  return { 
-    bg: 'from-[#1a120d] via-[#4a2b1a] to-[#1a120d]', 
+
+  return {
+    bg: 'from-[#1a120d] via-[#4a2b1a] to-[#1a120d]',
     border: 'border-orange-800',
     ornament: 'border-orange-900/50',
     innerOrnament: 'border-orange-600/20',
@@ -93,11 +92,11 @@ export const recalcOverall = (player: Player): number => {
   };
 
   const w = WEIGHTS[player.primaryPosition] || WEIGHTS.MEI;
-  const base = (attrs.pace * w.pace) + 
-               (attrs.shooting * w.shooting) + 
-               (attrs.passing * w.passing) + 
-               (attrs.dribbling * w.dribbling) + 
-               (attrs.defending * w.defending) + 
+  const base = (attrs.pace * w.pace) +
+               (attrs.shooting * w.shooting) +
+               (attrs.passing * w.passing) +
+               (attrs.dribbling * w.dribbling) +
+               (attrs.defending * w.defending) +
                (attrs.physical * w.physical);
 
   return Math.min(99, Math.round(base));
@@ -105,7 +104,7 @@ export const recalcOverall = (player: Player): number => {
 
 export const drawTeams = (players: Player[], teamsCount: number, eventId: string): TeamDraw => {
   const teamColors = ['#ff1744', '#2979ff', '#00e676', '#ffab00'];
-  
+
   const teams: Team[] = Array.from({ length: teamsCount }, (_, i) => ({
     id: generateId(),
     name: `Time ${String.fromCharCode(65 + i)}`,
@@ -156,3 +155,4 @@ export const drawTeams = (players: Player[], teamsCount: number, eventId: string
     createdAt: new Date().toISOString()
   };
 };
+
