@@ -8,11 +8,191 @@ import { supabase } from "@/shared/supabase";
 import { env } from "@/shared/env";
 import { joinPelada } from "@/modules/peladas/joinPelada";
 import { CreatePeladaModal } from "./components/CreatePeladaModal";
-import { savePelada, usePeladas } from "./hooks/usePeladasStorage";
+import { deletePelada, savePelada, usePeladas } from "./hooks/usePeladasStorage";
 import { useToast } from "@/shared/ui/ToastProvider";
 import { useConfirm } from "@/shared/ui/ConfirmProvider";
 
 const PENDING_PELADA_JOIN_KEY = "pending_pelada_join";
+const MAX_PELADAS_PER_USER = 3;
+const SWIPE_ACTION_WIDTH_PX = 96;
+
+type PeladaRowProps = {
+  pelada: Pelada;
+  canDelete: boolean;
+  isOpen: boolean;
+  setOpenPeladaId: (id: string | null) => void;
+  anyDeleting: boolean;
+  deletingThis: boolean;
+  onSelect: (pelada: Pelada) => void;
+  onDelete: (pelada: Pelada) => void;
+};
+
+const PeladaRow: React.FC<PeladaRowProps> = ({
+  pelada,
+  canDelete,
+  isOpen,
+  setOpenPeladaId,
+  anyDeleting,
+  deletingThis,
+  onSelect,
+  onDelete,
+}) => {
+  const [offset, setOffset] = useState(isOpen ? SWIPE_ACTION_WIDTH_PX : 0);
+  const [dragging, setDragging] = useState(false);
+  const contentRef = useRef<HTMLButtonElement | null>(null);
+  const dragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    baseOffset: number;
+    lockedAxis: "x" | "y" | null;
+    active: boolean;
+  } | null>(null);
+  const suppressClickRef = useRef(false);
+
+  useEffect(() => {
+    if (dragging) return;
+    setOffset(isOpen ? SWIPE_ACTION_WIDTH_PX : 0);
+  }, [dragging, isOpen]);
+
+  const close = () => setOpenPeladaId(null);
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl">
+      {canDelete && (isOpen || offset > 8) && (
+        <div
+          className="absolute inset-y-0 right-0 flex items-stretch z-0"
+          style={{
+            pointerEvents: anyDeleting ? "none" : "auto",
+            opacity: Math.min(1, offset / 16),
+          }}
+        >
+          <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(pelada);
+            }}
+            disabled={anyDeleting}
+            className="w-[96px] flex items-center justify-center bg-red-500/20 text-red-200 hover:bg-red-500/30 transition disabled:opacity-40 disabled:cursor-not-allowed rounded-r-2xl"
+            aria-label={`Excluir pelada ${pelada.name}`}
+            title="Excluir"
+          >
+            {deletingThis ? "..." : "×"}
+          </button>
+        </div>
+      )}
+
+      <button
+        ref={contentRef}
+        type="button"
+        onPointerDown={(e) => {
+          if (!canDelete) return;
+          if (anyDeleting) return;
+          suppressClickRef.current = false;
+          dragRef.current = {
+            pointerId: e.pointerId,
+            startX: e.clientX,
+            startY: e.clientY,
+            baseOffset: isOpen ? SWIPE_ACTION_WIDTH_PX : 0,
+            lockedAxis: null,
+            active: false,
+          };
+          setDragging(false);
+          contentRef.current?.setPointerCapture(e.pointerId);
+        }}
+        onPointerMove={(e) => {
+          if (!canDelete) return;
+          const d = dragRef.current;
+          if (!d || d.pointerId !== e.pointerId) return;
+
+          const dx = e.clientX - d.startX;
+          const dy = e.clientY - d.startY;
+
+          if (!d.lockedAxis) {
+            if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+            d.lockedAxis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+            if (d.lockedAxis !== "x") return;
+          }
+
+          if (d.lockedAxis !== "x") return;
+          if (Math.abs(dx) < 12) return;
+
+          if (!d.active) {
+            d.active = true;
+            setDragging(true);
+          }
+
+          const next = Math.max(
+            0,
+            Math.min(SWIPE_ACTION_WIDTH_PX, d.baseOffset - dx),
+          );
+          setOffset(next);
+        }}
+        onPointerUp={(e) => {
+          if (!canDelete) return;
+          const d = dragRef.current;
+          if (!d || d.pointerId !== e.pointerId) return;
+          dragRef.current = null;
+
+          if (!d.active) return;
+
+          suppressClickRef.current = true;
+          globalThis.setTimeout(() => {
+            suppressClickRef.current = false;
+          }, 250);
+
+          setDragging(false);
+          const shouldOpen = offset >= SWIPE_ACTION_WIDTH_PX * 0.45;
+          setOpenPeladaId(shouldOpen ? pelada.id : null);
+          setOffset(shouldOpen ? SWIPE_ACTION_WIDTH_PX : 0);
+        }}
+        onPointerCancel={(e) => {
+          if (!canDelete) return;
+          const d = dragRef.current;
+          if (!d || d.pointerId !== e.pointerId) return;
+          dragRef.current = null;
+          setDragging(false);
+          setOffset(isOpen ? SWIPE_ACTION_WIDTH_PX : 0);
+        }}
+        onClick={() => {
+          if (suppressClickRef.current) {
+            return;
+          }
+          if (isOpen) {
+            close();
+            return;
+          }
+          onSelect(pelada);
+        }}
+        className={[
+          "relative z-10 w-full text-left py-4 px-5 sm:py-5 sm:px-6 active:scale-[0.99] group flex items-center gap-4 min-w-0 touch-pan-y bg-black/30 border border-white/10 rounded-2xl hover:bg-white/[0.06] hover:border-cyan-500/25 transition-all duration-200",
+          dragging ? "" : "transition-transform duration-200 ease-out",
+        ].join(" ")}
+        style={{ transform: `translateX(-${offset}px)` }}
+      >
+        <span className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-lg shrink-0 group-hover:bg-cyan-500/20 transition-colors">
+          ⚽
+        </span>
+        <div className="flex-1 min-w-0">
+          <span className="font-black text-sm sm:text-base uppercase tracking-tight text-white group-hover:text-cyan-300 transition-colors block truncate">
+            {pelada.name}
+          </span>
+          <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest">
+            Entrar na pelada →
+          </span>
+        </div>
+        <span
+          className="text-white/20 group-hover:text-cyan-400 text-xl leading-none transition-colors shrink-0"
+          aria-hidden
+        >
+          →
+        </span>
+      </button>
+    </div>
+  );
+};
 
 export const PeladaSelectPage: React.FC = () => {
   const user = useAuthStore((state) => state.user);
@@ -24,6 +204,9 @@ export const PeladaSelectPage: React.FC = () => {
   const [upgradeLoading, setUpgradeLoading] = useState(false);
   const [upgradeError, setUpgradeError] = useState<string | null>(null);
   const [logoutLoading, setLogoutLoading] = useState(false);
+  const [peladasReloadKey, setPeladasReloadKey] = useState(0);
+  const [deletingPeladaId, setDeletingPeladaId] = useState<string | null>(null);
+  const [openPeladaId, setOpenPeladaId] = useState<string | null>(null);
   const mountedRef = useRef(true);
 
   if (!user) return null;
@@ -107,17 +290,55 @@ export const PeladaSelectPage: React.FC = () => {
     void run();
   }, [confirm, navigate, toast, user?.id]);
 
-  const { peladas, loading: peladasLoading } = usePeladas(user.id, showModal);
+  const { peladas, loading: peladasLoading } = usePeladas(
+    user.id,
+    `${showModal ? 1 : 0}-${peladasReloadKey}`,
+  );
   const isPro = user.plan === "pro";
+  const reachedPeladaLimit = peladas.length >= MAX_PELADAS_PER_USER;
+  const canCreatePelada = isPro && !reachedPeladaLimit;
 
   const handleCreate = async (pelada: Pelada) => {
+    if (!canCreatePelada) {
+      toast.info(`Limite de ${MAX_PELADAS_PER_USER} peladas por usuário atingido.`, {
+        title: "Peladas",
+      });
+      setShowModal(false);
+      return;
+    }
     await savePelada(user.id, pelada);
     setShowModal(false);
     navigate(`/pelada/${peladaSlug(pelada.name)}`, { replace: true });
   };
 
   const handleSelect = (pelada: Pelada) => {
+    setOpenPeladaId(null);
     navigate(`/pelada/${peladaSlug(pelada.name)}`);
+  };
+
+  const handleDelete = async (pelada: Pelada) => {
+    if (deletingPeladaId) return;
+    setOpenPeladaId(null);
+    const ok = await confirm({
+      title: "Excluir pelada",
+      message: `Tem certeza que deseja excluir a pelada "${pelada.name}"? Esta ação não pode ser desfeita.`,
+      confirmText: "Excluir",
+      cancelText: "Cancelar",
+    });
+    if (!ok) return;
+
+    setDeletingPeladaId(pelada.id);
+    try {
+      await deletePelada(pelada.id);
+      toast.success("Pelada excluída.", { title: "Peladas" });
+      setPeladasReloadKey((k) => k + 1);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível excluir a pelada.", {
+        title: "Falha",
+      });
+    } finally {
+      if (mountedRef.current) setDeletingPeladaId(null);
+    }
   };
 
   const getAccessToken = async (): Promise<string | null> => {
@@ -231,7 +452,11 @@ export const PeladaSelectPage: React.FC = () => {
             Escolha a pelada
           </h1>
           <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em]">
-            {isPro ? "Ou crie uma nova" : "Plano Free — faça upgrade para criar peladas"}
+            {isPro
+              ? reachedPeladaLimit
+                ? `Limite de ${MAX_PELADAS_PER_USER} peladas atingido`
+                : "Ou crie uma nova"
+              : "Plano Free — faça upgrade para criar peladas"}
           </p>
           <div className="mt-2 flex items-center gap-2">
             <span
@@ -318,29 +543,16 @@ export const PeladaSelectPage: React.FC = () => {
               <ul className="space-y-2.5 sm:space-y-3">
                 {peladas.map((p) => (
                   <li key={p.id}>
-                    <button
-                      type="button"
-                      onClick={() => handleSelect(p)}
-                      className="w-full text-left py-4 px-5 sm:py-5 sm:px-6 bg-black/30 border border-white/10 rounded-2xl hover:bg-white/[0.06] hover:border-cyan-500/25 active:scale-[0.99] transition-all duration-200 group flex items-center gap-4"
-                    >
-                      <span className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-lg shrink-0 group-hover:bg-cyan-500/20 transition-colors">
-                        ⚽
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <span className="font-black text-sm sm:text-base uppercase tracking-tight text-white group-hover:text-cyan-300 transition-colors block truncate">
-                          {p.name}
-                        </span>
-                        <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest">
-                          Entrar na pelada →
-                        </span>
-                      </div>
-                      <span
-                        className="text-white/20 group-hover:text-cyan-400 text-xl leading-none transition-colors shrink-0"
-                        aria-hidden
-                      >
-                        →
-                      </span>
-                    </button>
+                    <PeladaRow
+                      pelada={p}
+                      canDelete={p.userId === user.id}
+                      isOpen={openPeladaId === p.id}
+                      setOpenPeladaId={setOpenPeladaId}
+                      anyDeleting={!!deletingPeladaId}
+                      deletingThis={deletingPeladaId === p.id}
+                      onSelect={handleSelect}
+                      onDelete={handleDelete}
+                    />
                   </li>
                 ))}
               </ul>
@@ -354,11 +566,20 @@ export const PeladaSelectPage: React.FC = () => {
           {isPro ? (
             <button
               type="button"
-              onClick={() => setShowModal(true)}
-              className="w-full mt-6 py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] bg-white text-black shadow-xl hover:bg-cyan-400 hover:shadow-cyan-500/20 transition-all duration-200 active:scale-[0.99] flex items-center justify-center gap-2"
+              onClick={() => {
+                if (!canCreatePelada) return;
+                setShowModal(true);
+              }}
+              disabled={!canCreatePelada}
+              className={[
+                "w-full mt-6 py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl transition-all duration-200 flex items-center justify-center gap-2",
+                canCreatePelada
+                  ? "bg-white text-black hover:bg-cyan-400 hover:shadow-cyan-500/20 active:scale-[0.99]"
+                  : "bg-white/10 border border-white/10 text-white/40 cursor-not-allowed",
+              ].join(" ")}
             >
               <span className="text-xl leading-none">+</span>
-              Nova pelada
+              {canCreatePelada ? "Nova pelada" : "Limite atingido"}
             </button>
           ) : (
             <button

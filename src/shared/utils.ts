@@ -95,7 +95,11 @@ export const recalcOverall = (player: Player, sport: PeladaSport): number => {
   return Math.min(99, Math.round(base));
 };
 
-export const drawTeams = (players: Player[], teamsCount: number, eventId: string): TeamDraw => {
+export const drawTeams = (
+  players: Player[],
+  teamsCount: number,
+  eventId: string,
+): TeamDraw => {
   const teamColors = ['#ff1744', '#2979ff', '#00e676', '#ffab00'];
 
   const teams: Team[] = Array.from({ length: teamsCount }, (_, i) => ({
@@ -145,6 +149,7 @@ export const drawTeams = (players: Player[], teamsCount: number, eventId: string
     diff,
     balanceScore,
     gkCoverage: gks.length >= teamsCount,
+    matchup: teams.length >= 2 ? { homeTeamId: teams[0].id, awayTeamId: teams[1].id } : null,
     createdAt: new Date().toISOString()
   };
 };

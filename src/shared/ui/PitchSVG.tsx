@@ -3,13 +3,14 @@ import { TeamDraw, Position, Player } from '../types';
 
 interface PitchSVGProps {
   draw: TeamDraw;
+  onPlayerDoubleClick?: (player: Player) => void;
 }
 
-export const PitchSVG: React.FC<PitchSVGProps> = ({ draw }) => {
+export const PitchSVG: React.FC<PitchSVGProps> = ({ draw, onPlayerDoubleClick }) => {
   const teamA = draw.teams[0];
   const teamB = draw.teams[1];
 
-  const getPlayerRow = (pos: Position): number => {
+  const getLegacyRow = (pos: Position): number => {
     if (pos === 'GOL') return 0;
     if (['ZAG', 'LE', 'LD', 'VOL'].includes(pos)) return 1;
     return 2;
@@ -28,36 +29,57 @@ export const PitchSVG: React.FC<PitchSVGProps> = ({ draw }) => {
       finalY = fieldPadding + relativeY;
     }
 
+    const r = 3.2;
+    const clipId = `player-clip-${player.id}`;
+
     return (
-      <g key={player.id} className="animate-fade-in-up">
-        <circle cx={`${x}%`} cy={`${finalY + 0.8}%`} r="3.2" fill="black" opacity="0.3" />
-        <circle
-          cx={`${x}%`}
-          cy={`${finalY}%`}
-          r="3.2"
-          fill={teamColor}
-          stroke="white"
-          strokeWidth="0.8"
-          className="transition-all duration-700 ease-out shadow-xl"
-        />
-        <text
-          x={`${x}%`}
-          y={`${finalY}%`}
-          dy="1.2"
-          textAnchor="middle"
-          fill="white"
-          fontSize="3.2"
-          fontWeight="900"
-          className="pointer-events-none select-none"
-          style={{ fontFamily: 'Poppins, sans-serif' }}
-        >
-          {player.nick.charAt(0)}
-        </text>
+      <g
+        key={player.id}
+        className={onPlayerDoubleClick ? "animate-fade-in-up cursor-pointer" : "animate-fade-in-up"}
+        onDoubleClick={() => onPlayerDoubleClick?.(player)}
+      >
+        <defs>
+          <clipPath id={clipId}>
+            <circle cx={x} cy={finalY} r={r - 0.15} />
+          </clipPath>
+        </defs>
+
+        <circle cx={x} cy={finalY + 0.8} r={r} fill="black" opacity="0.3" />
+
+        <circle cx={x} cy={finalY} r={r} fill={teamColor} opacity="0.85" />
+
+        {player.photoUrl ? (
+          <image
+            href={player.photoUrl}
+            x={x - r}
+            y={finalY - r}
+            width={r * 2}
+            height={r * 2}
+            preserveAspectRatio="xMidYMid slice"
+            clipPath={`url(#${clipId})`}
+          />
+        ) : (
+          <text
+            x={x}
+            y={finalY}
+            dy="1.2"
+            textAnchor="middle"
+            fill="white"
+            fontSize="3.2"
+            fontWeight="900"
+            className="pointer-events-none select-none"
+            style={{ fontFamily: 'Poppins, sans-serif' }}
+          >
+            {player.nick.charAt(0)}
+          </text>
+        )}
+
+        <circle cx={x} cy={finalY} r={r} fill="none" stroke="white" strokeWidth="0.8" className="transition-all duration-700 ease-out shadow-xl" />
 
         <g transform={`translate(0, ${isBottom ? 5.5 : -8.5})`}>
           <rect
-            x={`${x - 9}%`}
-            y={`${finalY}%`}
+            x={x - 9}
+            y={finalY}
             width="18"
             height="4.5"
             rx="1"
@@ -65,8 +87,8 @@ export const PitchSVG: React.FC<PitchSVGProps> = ({ draw }) => {
             className="pointer-events-none"
           />
           <text
-            x={`${x}%`}
-            y={`${finalY + 3.2}%`}
+            x={x}
+            y={finalY + 3.2}
             textAnchor="middle"
             fill="white"
             fontSize="2.4"
@@ -82,17 +104,30 @@ export const PitchSVG: React.FC<PitchSVGProps> = ({ draw }) => {
   };
 
   const renderTeam = (team: any, isBottom: boolean) => {
+    const gk = (team.players as Player[]).find((p) => p.primaryPosition === 'GOL') ?? null;
+    const outfield = (team.players as Player[])
+      .filter((p) => p.id !== gk?.id)
+      .sort((a, b) => {
+        const rank = (pos: Position) => {
+          if (pos === 'ZAG' || pos === 'LE' || pos === 'LD') return 0;
+          if (pos === 'VOL' || pos === 'MEI') return 1;
+          if (pos === 'ATA') return 2;
+          return 3;
+        };
+        return rank(a.primaryPosition) - rank(b.primaryPosition) || b.overall - a.overall;
+      });
+
     const rows: Player[][] = [[], [], []];
-    team.players.forEach((p: Player) => {
-      rows[getPlayerRow(p.primaryPosition)].push(p);
+    if (gk) rows[0].push(gk);
+    outfield.forEach((p) => {
+      const row = getLegacyRow(p.primaryPosition);
+      rows[row].push(p);
     });
 
     const rowYPositions = [10, 45, 85];
-
     return rows.flatMap((playersInRow, rowIndex) => {
       const totalInRow = playersInRow.length;
       const y = rowYPositions[rowIndex];
-
       return playersInRow.map((p, i) => {
         let x = 50;
         if (totalInRow > 1) {
