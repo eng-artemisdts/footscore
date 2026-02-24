@@ -274,12 +274,6 @@ export function AgendaTab(props: {
             const mine = agenda.myConfirmationByEventId.get(e.id);
             const iConfirmed = mine?.status === "CONFIRMED";
 
-            const confirmedPlayers = confirmedUserIds
-              .map((uid) => playersByUserId.get(uid))
-              .filter(Boolean) as Player[];
-            const confirmedPlayerIds = Array.from(
-              new Set(confirmedPlayers.map((p) => p.id)),
-            );
             const isEditing = editingEventId === e.id;
 
             return (
@@ -383,13 +377,15 @@ export function AgendaTab(props: {
                     </button>
                     <button
                       type="button"
-                      disabled={confirmedPlayerIds.length < 2}
+                      disabled={players.length < 2}
                       onClick={() =>
-                        onStartDrawWithPlayerIds(confirmedPlayerIds)
+                        onStartDrawWithPlayerIds(
+                          Array.from(new Set(players.map((p) => p.id))),
+                        )
                       }
                       className="px-6 py-3 rounded-full bg-indigo-600/30 border border-indigo-500/30 text-[10px] font-black uppercase tracking-widest text-indigo-200 hover:bg-indigo-500/40 transition disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                      Sortear confirmados
+                      Sortear Times
                     </button>
                     {isAdmin && (
                       <>
@@ -449,7 +445,9 @@ export function AgendaTab(props: {
                           }}
                           className="px-6 py-3 rounded-full bg-red-500/10 border border-red-500/20 text-[10px] font-black uppercase tracking-widest text-red-300 hover:bg-red-500/20 hover:border-red-500/30 transition disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                          {deletingEventId === e.id ? "Removendo..." : "Excluir"}
+                          {deletingEventId === e.id
+                            ? "Removendo..."
+                            : "Excluir"}
                         </button>
                       </>
                     )}
@@ -549,10 +547,9 @@ export function AgendaTab(props: {
                               Math.min(100, Number(editMinPeople) || 10),
                             );
                             if (!startsAt) {
-                              toast.warning(
-                                "Informe data e horário válidos.",
-                                { title: "Campos obrigatórios" },
-                              );
+                              toast.warning("Informe data e horário válidos.", {
+                                title: "Campos obrigatórios",
+                              });
                               return;
                             }
                             if (!loc) {
@@ -635,9 +632,7 @@ export function AgendaTab(props: {
                         .sort((a, b) => a.label.localeCompare(b.label))
                         .slice(
                           0,
-                          expandedConfirmedByEventId[e.id]
-                            ? confirmedCount
-                            : 8,
+                          expandedConfirmedByEventId[e.id] ? confirmedCount : 8,
                         )
                         .map(({ uid, label }) => (
                           <span

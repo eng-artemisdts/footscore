@@ -12,6 +12,8 @@ import { getSportSchema } from '@/shared/sportSchemas';
 import { DrawSetupStep } from './DrawSetupStep';
 import { Player, Team, TeamDraw } from '@/shared/types';
 import { AgendaTab } from './components/AgendaTab';
+import { MatchTimer } from '@/shared/ui/MatchTimer';
+import { MatchGoals } from '@/shared/ui/MatchGoals';
 
 export const PeladaPage: React.FC = () => {
   const user = useAuthStore((state) => state.user);
@@ -79,6 +81,7 @@ export const PeladaPage: React.FC = () => {
   const [drawConfigReady, setDrawConfigReady] = useState(false);
   const [presentIds, setPresentIds] = useState<string[]>([]);
   const [drawHistoryOpen, setDrawHistoryOpen] = useState(false);
+  const [drawActionsOpen, setDrawActionsOpen] = useState(false);
   const dragRef = useRef<{ playerId: string; fromTeamIndex: number } | null>(null);
   const [draggingPlayerId, setDraggingPlayerId] = useState<string | null>(null);
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
@@ -92,6 +95,7 @@ export const PeladaPage: React.FC = () => {
     setPresentIds([]);
     setEditingTeamId(null);
     setEditingTeamName('');
+    setDrawActionsOpen(false);
   }, [pelada?.id]);
 
   const presentPlayers = useMemo(() => {
@@ -113,20 +117,10 @@ export const PeladaPage: React.FC = () => {
   }, [effectivePresentIds, players]);
 
   const openDrawSetup = () => {
-    const seedFromDraw = currentDraw?.presentPlayerIds ?? null;
     setActiveTab('draw');
     setCurrentDraw(null);
     setDrawSetupOpen(true);
-    setPresentIds((prev) => {
-      const current =
-        prev.length
-          ? prev
-          : Array.isArray(seedFromDraw) && seedFromDraw.length
-            ? seedFromDraw
-            : players.map((p) => p.id);
-      const allowed = new Set(players.map((p) => p.id));
-      return current.filter((id) => allowed.has(id));
-    });
+    setPresentIds(players.map((p) => p.id));
   };
 
   const openDrawSetupWithPlayerIds = (playerIds: string[]) => {
@@ -135,7 +129,6 @@ export const PeladaPage: React.FC = () => {
     if (next.length < 2) return;
     setActiveTab('draw');
     setCurrentDraw(null);
-    setDrawConfigReady(false);
     setPresentIds(next);
     setDrawSetupOpen(true);
   };
@@ -438,7 +431,7 @@ export const PeladaPage: React.FC = () => {
                 className="group relative px-10 sm:px-16 py-4 sm:py-6 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl sm:rounded-[32px] overflow-hidden shadow-2xl transition-all hover:scale-105 active:scale-95"
               >
                 <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                <span className="relative font-black text-lg sm:text-2xl tracking-widest uppercase">SORTEAR TIMES</span>
+                <span className="relative font-black text-lg sm:text-2xl tracking-widest uppercase">Sortear Times</span>
               </button>
             </div>
           </div>
@@ -602,32 +595,84 @@ export const PeladaPage: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <div className="flex flex-col sm:flex-row gap-2">
+              <div className="w-full sm:w-auto">
                 <button
                   type="button"
-                  onClick={() => setDrawHistoryOpen(true)}
-                  className="text-white/50 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] hover:text-cyan-300 flex items-center justify-center gap-2 bg-white/5 px-6 sm:px-8 py-3 sm:py-4 rounded-full border border-white/5 transition-all shadow-xl"
+                  onClick={() => setDrawActionsOpen((v) => !v)}
+                  className="sm:hidden w-full px-6 py-3 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-[0.2em] text-white/60 hover:text-cyan-300 hover:border-cyan-500/30 transition inline-flex items-center justify-center gap-2"
+                  aria-expanded={drawActionsOpen}
                 >
-                  Histórico
+                  Ações
+                  <span className={["transition-transform", drawActionsOpen ? "rotate-180" : ""].join(" ")}>▾</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={saveCurrentDrawToHistory}
-                  className="text-white/80 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] hover:text-black flex items-center justify-center gap-2 bg-emerald-500/20 hover:bg-emerald-400 px-6 sm:px-8 py-3 sm:py-4 rounded-full border border-emerald-400/20 hover:border-emerald-300 transition-all shadow-xl"
-                >
-                  Salvar times
-                </button>
-                <button
-                  onClick={runDraw}
-                  className="text-cyan-400 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] hover:text-cyan-300 flex items-center justify-center gap-2 bg-white/5 px-6 sm:px-8 py-3 sm:py-4 rounded-full border border-white/5 transition-all shadow-xl"
-                >
-                  Refazer Sorteio ↻
-                </button>
+
+                <div className={[drawActionsOpen ? "block" : "hidden", "sm:block mt-2 sm:mt-0"].join(" ")}>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDrawHistoryOpen(true);
+                        setDrawActionsOpen(false);
+                      }}
+                      className="text-white/50 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] hover:text-cyan-300 flex items-center justify-center gap-2 bg-white/5 px-6 sm:px-8 py-3 sm:py-4 rounded-full border border-white/5 transition-all shadow-xl"
+                    >
+                      Histórico
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        saveCurrentDrawToHistory();
+                        setDrawActionsOpen(false);
+                      }}
+                      className="text-white/80 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] hover:text-black flex items-center justify-center gap-2 bg-emerald-500/20 hover:bg-emerald-400 px-6 sm:px-8 py-3 sm:py-4 rounded-full border border-emerald-400/20 hover:border-emerald-300 transition-all shadow-xl"
+                    >
+                      Salvar times
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        runDraw();
+                        setDrawActionsOpen(false);
+                      }}
+                      className="text-cyan-400 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] hover:text-cyan-300 flex items-center justify-center gap-2 bg-white/5 px-6 sm:px-8 py-3 sm:py-4 rounded-full border border-white/5 transition-all shadow-xl"
+                    >
+                      Refazer Sorteio ↻
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
             <div className="grid lg:grid-cols-5 gap-8 lg:gap-12 items-start">
-              <div className="lg:col-span-2 space-y-6 sm:space-y-8 order-2 lg:order-1">
+              <div className="lg:col-span-2 lg:col-start-1 lg:row-start-1 space-y-4 lg:sticky lg:top-32 order-1">
+                <MatchTimer storageKey={`pelada_match_timer_v1_${pelada.id}_${user.id}`} />
+                <MatchGoals
+                  storageKey={`pelada_match_goals_v1_${pelada.id}_${user.id}_${currentDraw.id}`}
+                  timerStorageKey={`pelada_match_timer_v1_${pelada.id}_${user.id}`}
+                  homeTeam={
+                    currentDraw.matchup?.homeTeamId
+                      ? (currentDraw.teams.find((t) => t.id === currentDraw.matchup!.homeTeamId) ?? currentDraw.teams[0])
+                      : currentDraw.teams[0]
+                  }
+                  awayTeam={
+                    currentDraw.matchup?.awayTeamId
+                      ? (currentDraw.teams.find((t) => t.id === currentDraw.matchup!.awayTeamId) ?? currentDraw.teams[1] ?? currentDraw.teams[0])
+                      : (currentDraw.teams[1] ?? currentDraw.teams[0])
+                  }
+                />
+              </div>
+
+              <div className="lg:col-span-3 lg:col-start-3 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-32 order-2">
+                <PitchSVG
+                  draw={currentDraw}
+                  onPlayerDoubleClick={(p) => {
+                    setSelectedPlayer(p);
+                    setActiveTab('players');
+                  }}
+                />
+              </div>
+
+              <div className="lg:col-span-2 lg:col-start-1 lg:row-start-2 space-y-6 sm:space-y-8 order-3">
                 {currentDraw.teams.map((team, idx) => (
                   <div
                     key={team.id}
@@ -745,16 +790,6 @@ export const PeladaPage: React.FC = () => {
                     </div>
                   </div>
                 ))}
-              </div>
-
-              <div className="lg:col-span-3 lg:sticky lg:top-32 order-1 lg:order-2">
-                <PitchSVG
-                  draw={currentDraw}
-                  onPlayerDoubleClick={(p) => {
-                    setSelectedPlayer(p);
-                    setActiveTab('players');
-                  }}
-                />
               </div>
             </div>
           </section>
