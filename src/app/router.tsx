@@ -14,12 +14,38 @@ import { useAuthStore } from "@/modules/auth/authStore";
 import { supabaseUserToAppUser } from "@/modules/auth/supabaseUserToAppUser";
 import { supabase } from "@/shared/supabase";
 import { Plan, SubscriptionStatus } from "@/shared/types";
+import { Seo } from "@/shared/seo/Seo";
 
 export function AppRouter() {
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
   const setUser = useAuthStore((state) => state.setUser);
   const [authChecked, setAuthChecked] = useState(!supabase);
+
+  const pathname = location.pathname;
+  const baseTitle = "FutScore — Manager";
+  const defaultDescription =
+    "Organize peladas, monte times e compartilhe partidas com facilidade.";
+
+  const seo =
+    pathname === "/"
+      ? { title: baseTitle, description: "Entre para gerenciar suas peladas." }
+      : pathname === "/pelada"
+        ? { title: `Peladas | ${baseTitle}`, description: defaultDescription }
+        : pathname.startsWith("/pelada/")
+          ? { title: `Pelada | ${baseTitle}`, description: defaultDescription }
+          : pathname === "/auth/callback"
+            ? {
+                title: `Entrando... | ${baseTitle}`,
+                description: "Concluindo autenticação.",
+                robots: "noindex, nofollow",
+              }
+            : pathname === "/view" || pathname.endsWith("/view")
+              ? {
+                  title: `Compartilhamento | ${baseTitle}`,
+                  description: "Visualização para compartilhar partidas e informações.",
+                }
+              : { title: baseTitle, description: defaultDescription };
 
   useEffect(() => {
     if (!supabase) {
@@ -109,11 +135,29 @@ export function AppRouter() {
   }, [setUser]);
 
   if (location.pathname === "/view" || location.pathname.endsWith("/view")) {
-    return <ViewOnlyPage />;
+    return (
+      <>
+        <Seo
+          title={seo.title}
+          description={seo.description}
+          robots={seo.robots}
+        />
+        <ViewOnlyPage />
+      </>
+    );
   }
 
   if (location.pathname === "/auth/callback") {
-    return <AuthCallbackPage />;
+    return (
+      <>
+        <Seo
+          title={seo.title}
+          description={seo.description}
+          robots={seo.robots}
+        />
+        <AuthCallbackPage />
+      </>
+    );
   }
 
   if (!authChecked) {
@@ -125,27 +169,37 @@ export function AppRouter() {
   }
 
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={user ? <Navigate to="/pelada" replace /> : <AuthPage />}
+    <>
+      <Seo
+        title={seo.title}
+        description={seo.description}
+        robots={seo.robots}
       />
-      <Route path="/auth/callback" element={<AuthCallbackPage />} />
-      <Route
-        path="/pelada"
-        element={
-          user ? (
-            <PeladaSelectPage />
-          ) : (
-            <Navigate to="/" replace />
-          )
-        }
-      />
-      <Route
-        path="/pelada/:peladaSlug"
-        element={user ? <PeladaPage /> : <Navigate to="/" replace />}
-      />
-      <Route path="*" element={<Navigate to={user ? "/pelada" : "/"} replace />} />
-    </Routes>
+      <Routes>
+        <Route
+          path="/"
+          element={user ? <Navigate to="/pelada" replace /> : <AuthPage />}
+        />
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
+        <Route
+          path="/pelada"
+          element={
+            user ? (
+              <PeladaSelectPage />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+        <Route
+          path="/pelada/:peladaSlug"
+          element={user ? <PeladaPage /> : <Navigate to="/" replace />}
+        />
+        <Route
+          path="*"
+          element={<Navigate to={user ? "/pelada" : "/"} replace />}
+        />
+      </Routes>
+    </>
   );
 }

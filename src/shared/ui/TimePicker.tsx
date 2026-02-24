@@ -114,7 +114,8 @@ export function TimePicker(props: {
         <Popover.Content
           align="start"
           sideOffset={10}
-          className="z-50 w-[min(360px,calc(100vw-32px))] rounded-[28px] bg-[#0c1220] border border-white/10 shadow-2xl p-4 outline-none"
+          style={{ zIndex: 105 }}
+          className="relative z-[105] w-[min(360px,calc(100vw-32px))] rounded-[28px] bg-[#0c1220] border border-white/10 shadow-2xl p-4 outline-none"
         >
           <div className="flex items-center justify-between gap-3 mb-3">
             <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60">

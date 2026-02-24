@@ -643,26 +643,148 @@ export const PeladaPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid lg:grid-cols-5 gap-8 lg:gap-12 items-start">
-              <div className="lg:col-span-2 lg:col-start-1 lg:row-start-1 space-y-4 lg:sticky lg:top-32 order-1">
-                <MatchTimer storageKey={`pelada_match_timer_v1_${pelada.id}_${user.id}`} />
-                <MatchGoals
-                  storageKey={`pelada_match_goals_v1_${pelada.id}_${user.id}_${currentDraw.id}`}
-                  timerStorageKey={`pelada_match_timer_v1_${pelada.id}_${user.id}`}
-                  homeTeam={
-                    currentDraw.matchup?.homeTeamId
-                      ? (currentDraw.teams.find((t) => t.id === currentDraw.matchup!.homeTeamId) ?? currentDraw.teams[0])
-                      : currentDraw.teams[0]
-                  }
-                  awayTeam={
-                    currentDraw.matchup?.awayTeamId
-                      ? (currentDraw.teams.find((t) => t.id === currentDraw.matchup!.awayTeamId) ?? currentDraw.teams[1] ?? currentDraw.teams[0])
-                      : (currentDraw.teams[1] ?? currentDraw.teams[0])
-                  }
-                />
+            <div className="grid lg:grid-cols-5 gap-8 lg:gap-10 items-start">
+              <div className="contents lg:block lg:col-span-2 lg:col-start-1">
+                <div className="space-y-4 order-1 lg:order-none lg:sticky lg:top-32">
+                  <MatchTimer storageKey={`pelada_match_timer_v1_${pelada.id}_${user.id}`} />
+                  <MatchGoals
+                    storageKey={`pelada_match_goals_v1_${pelada.id}_${user.id}_${currentDraw.id}`}
+                    timerStorageKey={`pelada_match_timer_v1_${pelada.id}_${user.id}`}
+                    homeTeam={
+                      currentDraw.matchup?.homeTeamId
+                        ? (currentDraw.teams.find((t) => t.id === currentDraw.matchup!.homeTeamId) ?? currentDraw.teams[0])
+                        : currentDraw.teams[0]
+                    }
+                    awayTeam={
+                      currentDraw.matchup?.awayTeamId
+                        ? (currentDraw.teams.find((t) => t.id === currentDraw.matchup!.awayTeamId) ?? currentDraw.teams[1] ?? currentDraw.teams[0])
+                        : (currentDraw.teams[1] ?? currentDraw.teams[0])
+                    }
+                  />
+                </div>
+
+                <div className="space-y-6 sm:space-y-8 order-3 lg:order-none lg:mt-6">
+                  {currentDraw.teams.map((team, idx) => (
+                    <div
+                      key={team.id}
+                      className={`bg-white/[0.03] border rounded-[24px] sm:rounded-[40px] p-5 sm:p-8 relative overflow-hidden group transition-all shadow-xl ${
+                        draggingPlayerId ? 'border-cyan-500/30' : 'border-white/10 hover:border-white/20'
+                      }`}
+                      onDragOver={(e) => {
+                        if (!draggingPlayerId) return;
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        setDragOverKey(`team-${idx}`);
+                      }}
+                      onDragLeave={() => {
+                        setDragOverKey((prev) => (prev === `team-${idx}` ? null : prev));
+                      }}
+                      onDrop={(e) => onDropOnTeam(e, idx)}
+                    >
+                      <div className="absolute top-0 left-0 w-1.5 sm:w-2 h-full" style={{ backgroundColor: team.colorHex }} />
+                      {dragOverKey === `team-${idx}` && draggingPlayerId && (
+                        <div className="absolute inset-0 bg-cyan-500/10 pointer-events-none" />
+                      )}
+                      <div className="flex justify-between items-end mb-4 sm:mb-6">
+                        <div>
+                          <span className="text-[8px] sm:text-[10px] font-black text-white/30 uppercase tracking-[0.2em] block mb-1">TIME {idx + 1}</span>
+                          <div className="flex items-center gap-3">
+                            {editingTeamId === team.id ? (
+                              <input
+                                value={editingTeamName}
+                                onChange={(e) => setEditingTeamName(e.target.value)}
+                                onBlur={commitTeamName}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') commitTeamName();
+                                  if (e.key === 'Escape') cancelTeamNameEdit();
+                                }}
+                                autoFocus
+                                className="text-xl sm:text-2xl font-black tracking-tight uppercase bg-white/5 border border-white/10 rounded-xl px-3 py-2 outline-none focus:border-cyan-500/50 text-white"
+                              />
+                            ) : (
+                              <h3
+                                className="text-xl sm:text-2xl font-black tracking-tight uppercase cursor-text"
+                                style={{ color: team.colorHex }}
+                                onDoubleClick={() => startEditingTeam(team.id)}
+                                title="Duplo clique para renomear"
+                              >
+                                {team.name}
+                              </h3>
+                            )}
+                            <span className="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-[8px] font-black uppercase tracking-[0.2em] text-white/30">
+                              Editável
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[8px] sm:text-[10px] font-black text-white/30 block tracking-widest uppercase">Média</span>
+                          <span className="text-2xl sm:text-3xl font-black text-white">{team.avgOverall}</span>
+                          <span className="block text-[7px] sm:text-[8px] font-black text-white/20 uppercase">TOTAL: {team.totalOverall}</span>
+                        </div>
+                      </div>
+
+                      <div
+                        className={`space-y-2 sm:space-y-3 rounded-2xl ${
+                          dragOverKey === `end-${idx}` && draggingPlayerId ? 'ring-2 ring-cyan-400/30' : ''
+                        }`}
+                        onDragOver={(e) => {
+                          if (!draggingPlayerId) return;
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = 'move';
+                          setDragOverKey(`end-${idx}`);
+                        }}
+                        onDragLeave={() => {
+                          setDragOverKey((prev) => (prev === `end-${idx}` ? null : prev));
+                        }}
+                        onDrop={(e) => onDropOnTeam(e, idx)}
+                      >
+                        {team.players.map((p, playerIndex) => (
+                          <div
+                            key={p.id}
+                            draggable
+                            onDragStart={(e) => onDragStartPlayer(e, p, idx)}
+                            onDragEnd={onDragEndPlayer}
+                            onDragOver={(e) => {
+                              if (!draggingPlayerId) return;
+                              e.preventDefault();
+                              e.dataTransfer.dropEffect = 'move';
+                              setDragOverKey(`player-${idx}-${playerIndex}`);
+                            }}
+                            onDragLeave={() => {
+                              setDragOverKey((prev) => (prev === `player-${idx}-${playerIndex}` ? null : prev));
+                            }}
+                            onDrop={(e) => onDropOnPlayer(e, idx, playerIndex)}
+                            className={`flex justify-between items-center p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white/[0.02] border transition-colors cursor-grab active:cursor-grabbing select-none ${
+                              draggingPlayerId === p.id
+                                ? 'opacity-50 border-cyan-500/30'
+                                : 'border-white/5 hover:bg-white/[0.05]'
+                            } ${
+                              dragOverKey === `player-${idx}-${playerIndex}` && draggingPlayerId
+                                ? 'ring-2 ring-cyan-400/40'
+                                : ''
+                            }`}
+                            onClick={() => {
+                              if (draggingPlayerId) return;
+                              setSelectedPlayer(p);
+                              setActiveTab('players');
+                            }}
+                          >
+                            <div className="flex items-center gap-3 sm:gap-4">
+                              <span className="w-7 h-7 sm:w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-[8px] sm:text-[9px] font-black text-white/40">
+                                {p.primaryPosition}
+                              </span>
+                              <span className="font-bold text-xs sm:text-sm tracking-tight text-white/90">{p.nick}</span>
+                            </div>
+                            <span className="font-black text-lg sm:text-xl opacity-40">{p.overall}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              <div className="lg:col-span-3 lg:col-start-3 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-32 order-2">
+              <div className="lg:col-span-3 lg:col-start-3 lg:sticky lg:top-32 order-2">
                 <PitchSVG
                   draw={currentDraw}
                   onPlayerDoubleClick={(p) => {
@@ -670,126 +792,6 @@ export const PeladaPage: React.FC = () => {
                     setActiveTab('players');
                   }}
                 />
-              </div>
-
-              <div className="lg:col-span-2 lg:col-start-1 lg:row-start-2 space-y-6 sm:space-y-8 order-3">
-                {currentDraw.teams.map((team, idx) => (
-                  <div
-                    key={team.id}
-                    className={`bg-white/[0.03] border rounded-[24px] sm:rounded-[40px] p-5 sm:p-8 relative overflow-hidden group transition-all shadow-xl ${
-                      draggingPlayerId ? 'border-cyan-500/30' : 'border-white/10 hover:border-white/20'
-                    }`}
-                    onDragOver={(e) => {
-                      if (!draggingPlayerId) return;
-                      e.preventDefault();
-                      e.dataTransfer.dropEffect = 'move';
-                      setDragOverKey(`team-${idx}`);
-                    }}
-                    onDragLeave={() => {
-                      setDragOverKey((prev) => (prev === `team-${idx}` ? null : prev));
-                    }}
-                    onDrop={(e) => onDropOnTeam(e, idx)}
-                  >
-                    <div className="absolute top-0 left-0 w-1.5 sm:w-2 h-full" style={{ backgroundColor: team.colorHex }} />
-                    {dragOverKey === `team-${idx}` && draggingPlayerId && (
-                      <div className="absolute inset-0 bg-cyan-500/10 pointer-events-none" />
-                    )}
-                    <div className="flex justify-between items-end mb-4 sm:mb-6">
-                      <div>
-                        <span className="text-[8px] sm:text-[10px] font-black text-white/30 uppercase tracking-[0.2em] block mb-1">TIME {idx + 1}</span>
-                        <div className="flex items-center gap-3">
-                          {editingTeamId === team.id ? (
-                            <input
-                              value={editingTeamName}
-                              onChange={(e) => setEditingTeamName(e.target.value)}
-                              onBlur={commitTeamName}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') commitTeamName();
-                                if (e.key === 'Escape') cancelTeamNameEdit();
-                              }}
-                              autoFocus
-                              className="text-xl sm:text-2xl font-black tracking-tight uppercase bg-white/5 border border-white/10 rounded-xl px-3 py-2 outline-none focus:border-cyan-500/50 text-white"
-                            />
-                          ) : (
-                            <h3
-                              className="text-xl sm:text-2xl font-black tracking-tight uppercase cursor-text"
-                              style={{ color: team.colorHex }}
-                              onDoubleClick={() => startEditingTeam(team.id)}
-                              title="Duplo clique para renomear"
-                            >
-                              {team.name}
-                            </h3>
-                          )}
-                          <span className="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-[8px] font-black uppercase tracking-[0.2em] text-white/30">
-                            Editável
-                          </span>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-[8px] sm:text-[10px] font-black text-white/30 block tracking-widest uppercase">Média</span>
-                        <span className="text-2xl sm:text-3xl font-black text-white">{team.avgOverall}</span>
-                        <span className="block text-[7px] sm:text-[8px] font-black text-white/20 uppercase">TOTAL: {team.totalOverall}</span>
-                      </div>
-                    </div>
-
-                    <div
-                      className={`space-y-2 sm:space-y-3 rounded-2xl ${
-                        dragOverKey === `end-${idx}` && draggingPlayerId ? 'ring-2 ring-cyan-400/30' : ''
-                      }`}
-                      onDragOver={(e) => {
-                        if (!draggingPlayerId) return;
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = 'move';
-                        setDragOverKey(`end-${idx}`);
-                      }}
-                      onDragLeave={() => {
-                        setDragOverKey((prev) => (prev === `end-${idx}` ? null : prev));
-                      }}
-                      onDrop={(e) => onDropOnTeam(e, idx)}
-                    >
-                      {team.players.map((p, playerIndex) => (
-                        <div
-                          key={p.id}
-                          draggable
-                          onDragStart={(e) => onDragStartPlayer(e, p, idx)}
-                          onDragEnd={onDragEndPlayer}
-                          onDragOver={(e) => {
-                            if (!draggingPlayerId) return;
-                            e.preventDefault();
-                            e.dataTransfer.dropEffect = 'move';
-                            setDragOverKey(`player-${idx}-${playerIndex}`);
-                          }}
-                          onDragLeave={() => {
-                            setDragOverKey((prev) => (prev === `player-${idx}-${playerIndex}` ? null : prev));
-                          }}
-                          onDrop={(e) => onDropOnPlayer(e, idx, playerIndex)}
-                          className={`flex justify-between items-center p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white/[0.02] border transition-colors cursor-grab active:cursor-grabbing select-none ${
-                            draggingPlayerId === p.id
-                              ? 'opacity-50 border-cyan-500/30'
-                              : 'border-white/5 hover:bg-white/[0.05]'
-                          } ${
-                            dragOverKey === `player-${idx}-${playerIndex}` && draggingPlayerId
-                              ? 'ring-2 ring-cyan-400/40'
-                              : ''
-                          }`}
-                          onClick={() => {
-                            if (draggingPlayerId) return;
-                            setSelectedPlayer(p);
-                            setActiveTab('players');
-                          }}
-                        >
-                          <div className="flex items-center gap-3 sm:gap-4">
-                            <span className="w-7 h-7 sm:w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-[8px] sm:text-[9px] font-black text-white/40">
-                              {p.primaryPosition}
-                            </span>
-                            <span className="font-bold text-xs sm:text-sm tracking-tight text-white/90">{p.nick}</span>
-                          </div>
-                          <span className="font-black text-lg sm:text-xl opacity-40">{p.overall}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
               </div>
             </div>
           </section>

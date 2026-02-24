@@ -63,6 +63,29 @@ export async function savePelada(userId: string, pelada: Pelada): Promise<Pelada
   });
 }
 
+export async function deletePelada(peladaId: string): Promise<void> {
+  const id = (peladaId ?? "").trim();
+  if (!id) return;
+  if (!supabase) throw new Error("Exclusão não disponível sem conexão com o servidor.");
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.id) {
+    throw new Error("Sessão expirada. Saia e entre novamente.");
+  }
+
+  const { data, error } = await supabase
+    .from("peladas")
+    .delete()
+    .eq("id", id)
+    .eq("admin_user_id", user.id)
+    .select("id");
+
+  if (error) throw new Error(error.message);
+  if (!data?.length) throw new Error("Você não tem permissão para excluir esta pelada.");
+}
+
 export function usePeladas(userId: string, refreshKey?: unknown) {
   const [peladas, setPeladasState] = useState<Pelada[]>([]);
   const [loading, setLoading] = useState<boolean>(!!supabase);
