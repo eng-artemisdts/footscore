@@ -32,6 +32,29 @@ export interface Event {
   createdAt: string;
 }
 
+export type PeladaMemberPaymentStatus = 'REGULAR' | 'IRREGULAR';
+
+export type PeladaEventConfirmationStatus = 'CONFIRMED' | 'CANCELLED';
+
+export interface PeladaEvent {
+  id: string;
+  peladaId: string;
+  startsAt: string;
+  location: string;
+  minPeople: number;
+  createdBy: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface PeladaEventConfirmation {
+  peladaEventId: string;
+  userId: string;
+  status: PeladaEventConfirmationStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Team {
   id: string;
   name: string;
@@ -48,6 +71,9 @@ export interface TeamDraw {
   diff: number;
   balanceScore: number;
   gkCoverage: boolean;
+  presentPlayerIds?: string[] | null;
+  matchup?: { homeTeamId: string; awayTeamId: string } | null;
+  updatedAt?: string;
   createdAt: string;
 }
 

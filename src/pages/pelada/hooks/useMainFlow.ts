@@ -12,6 +12,9 @@ import { deletePlayerPhoto } from "@/modules/peladas/deletePlayerPhoto";
 type MainFlowTab = "dashboard" | "players" | "events" | "draw";
 
 const PLAYERS_STORAGE_KEY = (peladaId: string) => `pelada_players_${peladaId}`;
+const DRAW_STORAGE_KEY = (peladaId: string) => `pelada_draw_${peladaId}`;
+const DRAW_HISTORY_STORAGE_KEY = (peladaId: string) => `pelada_draw_history_${peladaId}`;
+const MAX_DRAW_HISTORY = 25;
 
 type PeladaPlayerRow = {
   pelada_id: string;
@@ -37,6 +40,7 @@ interface MainFlowState {
   activeTab: MainFlowTab;
   selectedPlayer: Player | null;
   currentDraw: TeamDraw | null;
+  drawHistory: TeamDraw[];
   showDeleteConfirm: boolean;
   searchQuery: string;
   shareCopied: boolean;
@@ -44,11 +48,12 @@ interface MainFlowState {
 }
 
 type MainFlowAction =
-  | { type: "INIT"; peladaId: string; players: Player[] }
+  | { type: "INIT"; peladaId: string; players: Player[]; draw: TeamDraw | null; history: TeamDraw[] }
   | { type: "SET_PLAYERS_LOADING"; value: boolean }
   | { type: "SET_ACTIVE_TAB"; tab: MainFlowTab }
   | { type: "SET_SELECTED_PLAYER"; player: Player | null }
   | { type: "SET_CURRENT_DRAW"; draw: TeamDraw | null }
+  | { type: "SET_DRAW_HISTORY"; history: TeamDraw[] }
   | { type: "SET_SHOW_DELETE_CONFIRM"; value: boolean }
   | { type: "SET_SEARCH_QUERY"; value: string }
   | { type: "SET_SHARE_COPIED"; value: boolean }
@@ -68,6 +73,7 @@ const initialState: MainFlowState = {
   activeTab: "dashboard",
   selectedPlayer: null,
   currentDraw: null,
+  drawHistory: [],
   showDeleteConfirm: false,
   searchQuery: "",
   shareCopied: false,
@@ -83,7 +89,8 @@ function reducer(state: MainFlowState, action: MainFlowAction): MainFlowState {
         playersLoading: false,
         activeTab: "dashboard",
         selectedPlayer: null,
-        currentDraw: null,
+        currentDraw: action.draw,
+        drawHistory: action.history,
         showDeleteConfirm: false,
         searchQuery: "",
         shareCopied: false,
@@ -97,6 +104,8 @@ function reducer(state: MainFlowState, action: MainFlowAction): MainFlowState {
       return { ...state, selectedPlayer: action.player };
     case "SET_CURRENT_DRAW":
       return { ...state, currentDraw: action.draw };
+    case "SET_DRAW_HISTORY":
+      return { ...state, drawHistory: action.history };
     case "SET_SHOW_DELETE_CONFIRM":
       return { ...state, showDeleteConfirm: action.value };
     case "SET_SEARCH_QUERY":
@@ -136,6 +145,18 @@ export function useMainFlow(params: { pelada: Pelada | null; isAdmin: boolean })
 
   const [state, dispatch] = useReducer(reducer, initialState);
 
+  const removeDrawFromHistory = useCallback(
+    (drawId: string) => {
+      if (!pelada) return;
+      const next = state.drawHistory.filter((d) => d.id !== drawId);
+      dispatch({ type: "SET_DRAW_HISTORY", history: next });
+      try {
+        localStorage.setItem(DRAW_HISTORY_STORAGE_KEY(pelada.id), JSON.stringify(next));
+      } catch {}
+    },
+    [pelada, state.drawHistory],
+  );
+
   const loadLocalPlayers = useCallback((peladaId: string): Player[] => {
     try {
       const saved = localStorage.getItem(PLAYERS_STORAGE_KEY(peladaId));
@@ -144,6 +165,70 @@ export function useMainFlow(params: { pelada: Pelada | null; isAdmin: boolean })
       return [];
     }
   }, []);
+
+  const recomputeDraw = useCallback((draw: TeamDraw): TeamDraw => {
+    const teams = draw.teams.map((t) => {
+      const totalOverall = t.players.reduce((acc, p) => acc + p.overall, 0);
+      const avgOverall = t.players.length ? Math.round(totalOverall / t.players.length) : 0;
+      return { ...t, totalOverall, avgOverall };
+    });
+    const totals = teams.map((t) => t.totalOverall);
+    const maxOvr = totals.length ? Math.max(...totals) : 0;
+    const minOvr = totals.length ? Math.min(...totals) : 0;
+    const diff = maxOvr - minOvr;
+    const balanceScore = Math.max(0, 100 - diff * 2);
+    const gkCount = teams.flatMap((t) => t.players).filter((p) => p.primaryPosition === "GOL").length;
+    const gkCoverage = gkCount >= teams.length;
+    const matchup =
+      draw.matchup?.homeTeamId && draw.matchup?.awayTeamId ? draw.matchup : teams.length >= 2 ? { homeTeamId: teams[0].id, awayTeamId: teams[1].id } : null;
+
+    return { ...draw, teams, diff, balanceScore, gkCoverage, matchup };
+  }, []);
+
+  const mergeDrawWithPlayers = useCallback(
+    (draw: TeamDraw, players: Player[]): TeamDraw => {
+      const byId = new Map(players.map((p) => [p.id, p] as const));
+      const teams = draw.teams.map((t) => ({
+        ...t,
+        players: t.players.map((p) => byId.get(p.id)).filter(Boolean) as Player[],
+      }));
+      return recomputeDraw({ ...draw, teams });
+    },
+    [recomputeDraw],
+  );
+
+  const loadLocalDraw = useCallback(
+    (peladaId: string, players: Player[]): TeamDraw | null => {
+      try {
+        const saved = localStorage.getItem(DRAW_STORAGE_KEY(peladaId));
+        if (!saved) return null;
+        const parsed = JSON.parse(saved) as TeamDraw;
+        if (!parsed?.teams?.length) return null;
+        return mergeDrawWithPlayers(parsed, players);
+      } catch {
+        return null;
+      }
+    },
+    [mergeDrawWithPlayers],
+  );
+
+  const loadLocalDrawHistory = useCallback(
+    (peladaId: string, players: Player[]): TeamDraw[] => {
+      try {
+        const saved = localStorage.getItem(DRAW_HISTORY_STORAGE_KEY(peladaId));
+        if (!saved) return [];
+        const parsed = JSON.parse(saved) as TeamDraw[];
+        if (!Array.isArray(parsed)) return [];
+        const merged = parsed
+          .filter((d) => d && Array.isArray((d as any).teams) && (d as any).teams.length)
+          .map((d) => mergeDrawWithPlayers(d, players));
+        return merged.slice(0, MAX_DRAW_HISTORY);
+      } catch {
+        return [];
+      }
+    },
+    [mergeDrawWithPlayers],
+  );
 
   const rowToPlayer = useCallback((row: PeladaPlayerRow): Player => {
     const primary = (row.primary_position as Position) ?? "MEI";
@@ -288,7 +373,9 @@ export function useMainFlow(params: { pelada: Pelada | null; isAdmin: boolean })
 
     const initLocal = () => {
       if (cancelled) return;
-      dispatch({ type: "INIT", peladaId: pelada.id, players: localPlayers });
+      const draw = loadLocalDraw(pelada.id, localPlayers);
+      const history = loadLocalDrawHistory(pelada.id, localPlayers);
+      dispatch({ type: "INIT", peladaId: pelada.id, players: localPlayers, draw, history });
       if (isAdmin && localPlayers.length) {
         void upsertPlayersToRemote(pelada.id, localPlayers);
       }
@@ -327,7 +414,9 @@ export function useMainFlow(params: { pelada: Pelada | null; isAdmin: boolean })
 
       const remotePlayers = (data as unknown as PeladaPlayerRow[]).map(rowToPlayer);
       if (remotePlayers.length) {
-        dispatch({ type: "INIT", peladaId: pelada.id, players: remotePlayers });
+        const draw = loadLocalDraw(pelada.id, remotePlayers);
+        const history = loadLocalDrawHistory(pelada.id, remotePlayers);
+        dispatch({ type: "INIT", peladaId: pelada.id, players: remotePlayers, draw, history });
         return;
       }
 
@@ -344,6 +433,36 @@ export function useMainFlow(params: { pelada: Pelada | null; isAdmin: boolean })
     if (state.peladaId !== pelada.id) return;
     localStorage.setItem(PLAYERS_STORAGE_KEY(pelada.id), JSON.stringify(state.players));
   }, [pelada, state.peladaId, state.players]);
+
+  useEffect(() => {
+    if (!pelada) return;
+    if (state.peladaId !== pelada.id) return;
+    if (!state.currentDraw) {
+      try {
+        localStorage.removeItem(DRAW_STORAGE_KEY(pelada.id));
+      } catch {}
+      return;
+    }
+    try {
+      localStorage.setItem(DRAW_STORAGE_KEY(pelada.id), JSON.stringify(state.currentDraw));
+    } catch {}
+  }, [pelada, state.currentDraw, state.peladaId]);
+
+  const saveCurrentDrawToHistory = useCallback(() => {
+    if (!pelada) return;
+    if (!state.currentDraw) {
+      toast.warning("Faça um sorteio antes de salvar.", { title: "Nada para salvar" });
+      return;
+    }
+    const now = new Date().toISOString();
+    const withUpdatedAt: TeamDraw = { ...state.currentDraw, updatedAt: now };
+    const next = [withUpdatedAt, ...state.drawHistory.filter((d) => d.id !== withUpdatedAt.id)].slice(0, MAX_DRAW_HISTORY);
+    dispatch({ type: "SET_DRAW_HISTORY", history: next });
+    try {
+      localStorage.setItem(DRAW_HISTORY_STORAGE_KEY(pelada.id), JSON.stringify(next));
+    } catch {}
+    toast.success("Times salvos no histórico.", { title: "Sorteio salvo" });
+  }, [pelada, state.currentDraw, state.drawHistory, toast]);
 
   const topPlayers = useMemo(() => {
     return [...state.players].sort((a, b) => b.overall - a.overall).slice(0, 5);
@@ -483,12 +602,18 @@ export function useMainFlow(params: { pelada: Pelada | null; isAdmin: boolean })
     })();
   };
 
-  const handleDraw = () => {
-    if (state.players.length < 2) {
+  const handleDraw = (options?: {
+    players?: Player[];
+    presentPlayerIds?: string[] | null;
+  }) => {
+    const basePlayers = options?.players ?? state.players;
+    if (basePlayers.length < 2) {
       toast.warning("Adicione pelo menos 2 jogadores.", { title: "Jogadores insuficientes" });
       return;
     }
-    const draw = drawTeams(state.players, 2, "event-" + Date.now());
+    const draw = drawTeams(basePlayers, 2, "event-" + Date.now());
+    draw.presentPlayerIds =
+      options?.presentPlayerIds ?? (options?.players ? basePlayers.map((p) => p.id) : null);
     setCurrentDraw(draw);
     setActiveTab("draw");
   };
@@ -647,6 +772,9 @@ export function useMainFlow(params: { pelada: Pelada | null; isAdmin: boolean })
     setSelectedPlayer,
     currentDraw: state.currentDraw,
     setCurrentDraw,
+    drawHistory: state.drawHistory,
+    saveCurrentDrawToHistory,
+    removeDrawFromHistory,
     showDeleteConfirm: state.showDeleteConfirm,
     setShowDeleteConfirm,
     searchQuery: state.searchQuery,
