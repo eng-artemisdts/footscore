@@ -12,6 +12,10 @@ export function supabaseUserToAppUser(
       name?: string;
       given_name?: string;
       family_name?: string;
+      avatar_url?: string;
+      picture?: string;
+      avatarUrl?: string;
+      photo_url?: string;
     };
   },
   profile?: {
@@ -21,6 +25,13 @@ export function supabaseUserToAppUser(
   } | null,
 ): User {
   const meta = supabaseUser.user_metadata ?? {};
+  const avatarUrl = (
+    meta.avatar_url ||
+    meta.picture ||
+    meta.avatarUrl ||
+    meta.photo_url ||
+    ""
+  ).trim();
   const full =
     meta.full_name ||
     meta.name ||
@@ -36,6 +47,7 @@ export function supabaseUserToAppUser(
     id: supabaseUser.id,
     email: supabaseUser.email ?? "",
     name,
+    avatarUrl: avatarUrl || null,
     role: "ADMIN",
     plan: profile?.plan ?? defaultPlan,
     subscriptionStatus: profile?.subscription_status ?? defaultSubscriptionStatus,

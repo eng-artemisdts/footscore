@@ -11,6 +11,14 @@ describe("modules/auth/supabaseUserToAppUser", () => {
     expect(user.subscriptionStatus).toBe("free");
   });
 
+  it("inclui avatarUrl quando disponível no metadata", () => {
+    const user = supabaseUserToAppUser(
+      { id: "u1", email: "joao@email.com", user_metadata: { full_name: "João Silva", avatar_url: "https://img.com/a.png" } },
+      null,
+    );
+    expect(user.avatarUrl).toBe("https://img.com/a.png");
+  });
+
   it("monta nome a partir de given_name e family_name", () => {
     const user = supabaseUserToAppUser(
       { id: "u1", email: "maria@email.com", user_metadata: { given_name: "Maria", family_name: "Souza" } },
