@@ -10,6 +10,15 @@ export function AuthCallbackPage() {
   const handledRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
+  const sanitizeNext = (value: string | null): string | null => {
+    const v = String(value ?? "").trim();
+    if (!v) return null;
+    if (!v.startsWith("/")) return null;
+    if (v.startsWith("//")) return null;
+    if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(v)) return null;
+    return v;
+  };
+
   const normalizeError = (message: string): string => {
     const msg = String(message || "");
     if (/PKCE code verifier not found in storage/i.test(msg)) {
@@ -32,11 +41,13 @@ export function AuthCallbackPage() {
       const hashParams = new URLSearchParams(hash);
       const accessToken = hashParams.get("access_token");
       const refreshToken = hashParams.get("refresh_token");
+      const type = hashParams.get("type") || url.searchParams.get("type");
       const hashError =
         hashParams.get("error_description") ||
         hashParams.get("error") ||
         hashParams.get("error_code");
       const code = url.searchParams.get("code");
+      const next = sanitizeNext(url.searchParams.get("next"));
 
       try {
         if (hashError) {
@@ -78,7 +89,9 @@ export function AuthCallbackPage() {
           return;
         }
         setUser(supabaseUserToAppUser(data.session.user, null));
-        navigate("/pelada", { replace: true });
+        const target =
+          next || (String(type).toLowerCase() === "recovery" ? "/auth/recover" : "/pelada");
+        navigate(target, { replace: true });
       } catch (e) {
         setError(normalizeError(e instanceof Error ? e.message : "Erro ao concluir login."));
       }

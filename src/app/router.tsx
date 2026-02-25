@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 import { AuthPage } from "@/pages/auth/AuthPage";
 import { AuthCallbackPage } from "@/pages/auth/AuthCallbackPage";
+import { AuthRecoverPage } from "@/pages/auth/AuthRecoverPage";
 import { PeladaPage } from "@/pages/pelada/PeladaPage";
 import { PeladaSelectPage } from "@/pages/peladaSelect/PeladaSelectPage";
 import { ViewOnlyPage } from "@/pages/view/ViewOnlyPage";
@@ -40,6 +41,12 @@ export function AppRouter() {
                 description: "Concluindo autenticação.",
                 robots: "noindex, nofollow",
               }
+            : pathname === "/auth/recover"
+              ? {
+                  title: `Nova senha | ${baseTitle}`,
+                  description: "Defina sua nova senha.",
+                  robots: "noindex, nofollow",
+                }
             : pathname === "/view" || pathname.endsWith("/view")
               ? {
                   title: `Compartilhamento | ${baseTitle}`,
@@ -160,6 +167,19 @@ export function AppRouter() {
     );
   }
 
+  if (location.pathname === "/auth/recover") {
+    return (
+      <>
+        <Seo
+          title={seo.title}
+          description={seo.description}
+          robots={seo.robots}
+        />
+        <AuthRecoverPage />
+      </>
+    );
+  }
+
   if (!authChecked) {
     return (
       <div className="min-h-screen bg-[#050810] flex items-center justify-center">
@@ -181,6 +201,7 @@ export function AppRouter() {
           element={user ? <Navigate to="/pelada" replace /> : <AuthPage />}
         />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
+        <Route path="/auth/recover" element={<AuthRecoverPage />} />
         <Route
           path="/pelada"
           element={

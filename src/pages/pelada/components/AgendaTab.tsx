@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { PeladaEventConfirmation, Player } from "@/shared/types";
 import { generateId } from "@/shared/utils";
 import { usePeladaAgenda } from "@/pages/pelada/hooks/usePeladaAgenda";
@@ -6,6 +6,45 @@ import { useToast } from "@/shared/ui/ToastProvider";
 import { DatePicker } from "@/shared/ui/DatePicker";
 import { TimePicker } from "@/shared/ui/TimePicker";
 import { NumberStepper } from "@/shared/ui/NumberStepper";
+
+const locationCacheKey = (peladaId: string) =>
+  `pelada_location_cache_v1_${peladaId}`;
+
+const normalizeLocation = (value: string) =>
+  (value || "").trim().replace(/\s+/g, " ");
+
+function loadCachedLocations(peladaId: string): string[] {
+  try {
+    const raw = localStorage.getItem(locationCacheKey(peladaId));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const item of parsed) {
+      if (typeof item !== "string") continue;
+      const loc = normalizeLocation(item);
+      if (!loc) continue;
+      const k = loc.toLowerCase();
+      if (seen.has(k)) continue;
+      seen.add(k);
+      out.push(loc);
+      if (out.length >= 12) break;
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+function saveCachedLocations(peladaId: string, locations: string[]) {
+  try {
+    localStorage.setItem(
+      locationCacheKey(peladaId),
+      JSON.stringify(locations.slice(0, 12)),
+    );
+  } catch {}
+}
 
 export function AgendaTab(props: {
   peladaId: string;
@@ -31,7 +70,11 @@ export function AgendaTab(props: {
   const [editMinPeople, setEditMinPeople] = useState(10);
   const [savingEdit, setSavingEdit] = useState(false);
   const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
+  const [cachedLocations, setCachedLocations] = useState<string[]>([]);
   const [expandedConfirmedByEventId, setExpandedConfirmedByEventId] = useState<
+    Record<string, boolean>
+  >({});
+  const [expandedActionsByEventId, setExpandedActionsByEventId] = useState<
     Record<string, boolean>
   >({});
 
@@ -66,6 +109,61 @@ export function AgendaTab(props: {
   };
 
   const pad2 = (n: number) => String(n).padStart(2, "0");
+  const todayYmd = (() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+  })();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setCachedLocations(loadCachedLocations(peladaId));
+  }, [peladaId]);
+
+  const rememberLocation = (raw: string) => {
+    const loc = normalizeLocation(raw);
+    if (!loc) return;
+    setCachedLocations((prev) => {
+      const next: string[] = [];
+      const seen = new Set<string>();
+      next.push(loc);
+      seen.add(loc.toLowerCase());
+      for (const item of prev) {
+        const n = normalizeLocation(item);
+        if (!n) continue;
+        const k = n.toLowerCase();
+        if (seen.has(k)) continue;
+        seen.add(k);
+        next.push(n);
+        if (next.length >= 12) break;
+      }
+      saveCachedLocations(peladaId, next);
+      return next;
+    });
+  };
+
+  const locationSuggestions = useMemo(() => {
+    const q = normalizeLocation(location).toLowerCase();
+    return cachedLocations
+      .filter((l) => {
+        const k = l.toLowerCase();
+        if (q && !k.includes(q)) return false;
+        if (q && k === q) return false;
+        return true;
+      })
+      .slice(0, 6);
+  }, [cachedLocations, location]);
+
+  const editLocationSuggestions = useMemo(() => {
+    const q = normalizeLocation(editLocation).toLowerCase();
+    return cachedLocations
+      .filter((l) => {
+        const k = l.toLowerCase();
+        if (q && !k.includes(q)) return false;
+        if (q && k === q) return false;
+        return true;
+      })
+      .slice(0, 6);
+  }, [cachedLocations, editLocation]);
 
   const isoToLocalYmd = (iso: string) => {
     try {
@@ -107,8 +205,15 @@ export function AgendaTab(props: {
 
   const handleCreate = async () => {
     if (creating) return;
+    const d = date.trim();
+    if (d && d < todayYmd) {
+      toast.warning("Não é possível agendar para dias anteriores.", {
+        title: "Data inválida",
+      });
+      return;
+    }
     const startsAt = buildStartsAtIso();
-    const loc = location.trim();
+    const loc = normalizeLocation(location);
     const min = Math.max(2, Math.min(100, Number(minPeople) || 10));
     if (!startsAt) {
       toast.warning("Informe data e horário válidos.", {
@@ -128,6 +233,7 @@ export function AgendaTab(props: {
         location: loc,
         minPeople: min,
       });
+      rememberLocation(loc);
       setDate("");
       setTime("");
       setLocation("");
@@ -189,7 +295,7 @@ export function AgendaTab(props: {
               <label className="block text-[9px] font-black uppercase tracking-widest text-white/30 mb-2">
                 Data
               </label>
-              <DatePicker value={date} onChange={setDate} />
+              <DatePicker value={date} onChange={setDate} min={todayYmd} />
             </div>
             <div className="sm:col-span-1">
               <label className="block text-[9px] font-black uppercase tracking-widest text-white/30 mb-2">
@@ -208,6 +314,23 @@ export function AgendaTab(props: {
                 placeholder="Ex.: Arena Central"
                 className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-4 text-xs font-bold focus:outline-none focus:border-cyan-500/50"
               />
+              {locationSuggestions.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {locationSuggestions.map((loc) => (
+                    <button
+                      key={loc}
+                      type="button"
+                      onClick={() => {
+                        setLocation(loc);
+                        rememberLocation(loc);
+                      }}
+                      className="px-3 py-2 rounded-2xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/45 hover:text-cyan-300 hover:border-cyan-500/30 transition"
+                    >
+                      {loc}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="sm:col-span-1">
               <label className="block text-[9px] font-black uppercase tracking-widest text-white/30 mb-2">
@@ -228,9 +351,10 @@ export function AgendaTab(props: {
               <div className="px-4 py-3 rounded-2xl bg-black/30 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/50">
                 {(() => {
                   const iso = buildStartsAtIso();
-                  if (!iso || !location.trim())
+                  const loc = normalizeLocation(location);
+                  if (!iso || !loc)
                     return "Preencha data, horário e local";
-                  return `${formatShort(iso)} · ${location.trim()} · mínimo ${Math.max(2, Math.min(100, Number(minPeople) || 10))}`;
+                  return `${formatShort(iso)} · ${loc} · mínimo ${Math.max(2, Math.min(100, Number(minPeople) || 10))}`;
                 })()}
               </div>
             </div>
@@ -318,140 +442,212 @@ export function AgendaTab(props: {
                     </div>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-                    <button
-                      type="button"
-                      disabled={paymentBlocked || agenda.loading}
-                      onClick={async () => {
-                        try {
-                          await agenda.setMyConfirmation({
-                            peladaEventId: e.id,
-                            status: "CONFIRMED",
-                          });
-                          toast.success("Presença confirmada.", {
-                            title: "Agenda",
-                          });
-                        } catch (err) {
-                          toast.error(
-                            err instanceof Error
-                              ? err.message
-                              : "Não foi possível confirmar.",
-                            { title: "Falha" },
-                          );
-                        }
-                      }}
-                      className={[
-                        "px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition border",
-                        iConfirmed
-                          ? "bg-white/5 border-white/10 text-white/30"
-                          : "bg-cyan-500 border-cyan-400 text-black hover:bg-cyan-400",
-                        paymentBlocked ? "opacity-50 cursor-not-allowed" : "",
-                      ].join(" ")}
-                    >
-                      Confirmar
-                    </button>
-                    <button
-                      type="button"
-                      disabled={!iConfirmed || agenda.loading}
-                      onClick={async () => {
-                        try {
-                          await agenda.setMyConfirmation({
-                            peladaEventId: e.id,
-                            status: "CANCELLED",
-                          });
-                          toast.info("Confirmação removida.", {
-                            title: "Agenda",
-                          });
-                        } catch (err) {
-                          toast.error(
-                            err instanceof Error
-                              ? err.message
-                              : "Não foi possível cancelar.",
-                            { title: "Falha" },
-                          );
-                        }
-                      }}
-                      className="px-6 py-3 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-white hover:border-white/20 transition disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="button"
-                      disabled={players.length < 2}
-                      onClick={() =>
-                        onStartDrawWithPlayerIds(
-                          Array.from(new Set(players.map((p) => p.id))),
-                        )
-                      }
-                      className="px-6 py-3 rounded-full bg-indigo-600/30 border border-indigo-500/30 text-[10px] font-black uppercase tracking-widest text-indigo-200 hover:bg-indigo-500/40 transition disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      Sortear Times
-                    </button>
-                    {isAdmin && (
+                  {(() => {
+                    const actionsExpanded = !!expandedActionsByEventId[e.id];
+                    const actionsId = `agenda-event-actions-${e.id}`;
+
+                    const closeActions = () =>
+                      setExpandedActionsByEventId((prev) => {
+                        if (!prev[e.id]) return prev;
+                        return { ...prev, [e.id]: false };
+                      });
+
+                    const renderActions = (opts: { fullWidth: boolean }) => (
                       <>
                         <button
                           type="button"
-                          disabled={agenda.loading || deletingEventId === e.id}
-                          onClick={() => {
-                            if (isEditing) {
-                              setEditingEventId(null);
-                              return;
-                            }
-                            setEditingEventId(e.id);
-                            setEditDate(isoToLocalYmd(e.startsAt));
-                            setEditTime(isoToLocalHm(e.startsAt));
-                            setEditLocation(e.location);
-                            setEditMinPeople(e.minPeople);
-                          }}
-                          className="px-6 py-3 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-cyan-400 hover:border-cyan-500/30 transition disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          {isEditing ? "Fechar edição" : "Editar"}
-                        </button>
-                        <button
-                          type="button"
-                          disabled={
-                            agenda.loading ||
-                            deletingEventId === e.id ||
-                            savingEdit
-                          }
+                          disabled={paymentBlocked || agenda.loading}
                           onClick={async () => {
-                            if (
-                              typeof window !== "undefined" &&
-                              !window.confirm(
-                                "Remover este agendamento? As confirmações também serão apagadas.",
-                              )
-                            )
-                              return;
-                            setDeletingEventId(e.id);
                             try {
-                              await agenda.deleteEvent(e.id);
-                              if (editingEventId === e.id)
-                                setEditingEventId(null);
-                              toast.success("Agendamento removido.", {
+                              await agenda.setMyConfirmation({
+                                peladaEventId: e.id,
+                                status: "CONFIRMED",
+                              });
+                              toast.success("Presença confirmada.", {
                                 title: "Agenda",
                               });
                             } catch (err) {
                               toast.error(
                                 err instanceof Error
                                   ? err.message
-                                  : "Não foi possível remover.",
+                                  : "Não foi possível confirmar.",
                                 { title: "Falha" },
                               );
                             } finally {
-                              setDeletingEventId((prev) =>
-                                prev === e.id ? null : prev,
-                              );
+                              closeActions();
                             }
                           }}
-                          className="px-6 py-3 rounded-full bg-red-500/10 border border-red-500/20 text-[10px] font-black uppercase tracking-widest text-red-300 hover:bg-red-500/20 hover:border-red-500/30 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                          className={[
+                            opts.fullWidth ? "w-full" : "px-6",
+                            "py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition border",
+                            iConfirmed
+                              ? "bg-white/5 border-white/10 text-white/30"
+                              : "bg-cyan-500 border-cyan-400 text-black hover:bg-cyan-400",
+                            paymentBlocked
+                              ? "opacity-50 cursor-not-allowed"
+                              : "",
+                          ].join(" ")}
                         >
-                          {deletingEventId === e.id
-                            ? "Removendo..."
-                            : "Excluir"}
+                          Confirmar
                         </button>
+                        <button
+                          type="button"
+                          disabled={!iConfirmed || agenda.loading}
+                          onClick={async () => {
+                            try {
+                              await agenda.setMyConfirmation({
+                                peladaEventId: e.id,
+                                status: "CANCELLED",
+                              });
+                              toast.info("Confirmação removida.", {
+                                title: "Agenda",
+                              });
+                            } catch (err) {
+                              toast.error(
+                                err instanceof Error
+                                  ? err.message
+                                  : "Não foi possível cancelar.",
+                                { title: "Falha" },
+                              );
+                            } finally {
+                              closeActions();
+                            }
+                          }}
+                          className={[
+                            opts.fullWidth ? "w-full" : "px-6",
+                            "py-3 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-white hover:border-white/20 transition disabled:opacity-40 disabled:cursor-not-allowed",
+                          ].join(" ")}
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="button"
+                          disabled={players.length < 2}
+                          onClick={() => {
+                            closeActions();
+                            onStartDrawWithPlayerIds(
+                              Array.from(new Set(players.map((p) => p.id))),
+                            );
+                          }}
+                          className={[
+                            opts.fullWidth ? "w-full" : "px-6",
+                            "py-3 rounded-full bg-indigo-600/30 border border-indigo-500/30 text-[10px] font-black uppercase tracking-widest text-indigo-200 hover:bg-indigo-500/40 transition disabled:opacity-40 disabled:cursor-not-allowed",
+                          ].join(" ")}
+                        >
+                          Sortear Times
+                        </button>
+                        {isAdmin && (
+                          <>
+                            <button
+                              type="button"
+                              disabled={
+                                agenda.loading || deletingEventId === e.id
+                              }
+                              onClick={() => {
+                                closeActions();
+                                if (isEditing) {
+                                  setEditingEventId(null);
+                                  return;
+                                }
+                                setEditingEventId(e.id);
+                                setEditDate(isoToLocalYmd(e.startsAt));
+                                setEditTime(isoToLocalHm(e.startsAt));
+                                setEditLocation(e.location);
+                                setEditMinPeople(e.minPeople);
+                              }}
+                              className={[
+                                opts.fullWidth ? "w-full" : "px-6",
+                                "py-3 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-cyan-400 hover:border-cyan-500/30 transition disabled:opacity-40 disabled:cursor-not-allowed",
+                              ].join(" ")}
+                            >
+                              {isEditing ? "Fechar edição" : "Editar"}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={
+                                agenda.loading ||
+                                deletingEventId === e.id ||
+                                savingEdit
+                              }
+                              onClick={async () => {
+                                if (
+                                  typeof window !== "undefined" &&
+                                  !window.confirm(
+                                    "Remover este agendamento? As confirmações também serão apagadas.",
+                                  )
+                                )
+                                  return;
+                                closeActions();
+                                setDeletingEventId(e.id);
+                                try {
+                                  await agenda.deleteEvent(e.id);
+                                  if (editingEventId === e.id)
+                                    setEditingEventId(null);
+                                  toast.success("Agendamento removido.", {
+                                    title: "Agenda",
+                                  });
+                                } catch (err) {
+                                  toast.error(
+                                    err instanceof Error
+                                      ? err.message
+                                      : "Não foi possível remover.",
+                                    { title: "Falha" },
+                                  );
+                                } finally {
+                                  setDeletingEventId((prev) =>
+                                    prev === e.id ? null : prev,
+                                  );
+                                }
+                              }}
+                              className={[
+                                opts.fullWidth ? "w-full" : "px-6",
+                                "py-3 rounded-full bg-red-500/10 border border-red-500/20 text-[10px] font-black uppercase tracking-widest text-red-300 hover:bg-red-500/20 hover:border-red-500/30 transition disabled:opacity-40 disabled:cursor-not-allowed",
+                              ].join(" ")}
+                            >
+                              {deletingEventId === e.id
+                                ? "Removendo..."
+                                : "Excluir"}
+                            </button>
+                          </>
+                        )}
                       </>
-                    )}
-                  </div>
+                    );
+
+                    return (
+                      <div className="flex flex-col gap-2">
+                        <div className="sm:hidden">
+                          <button
+                            type="button"
+                            aria-expanded={actionsExpanded}
+                            aria-controls={actionsId}
+                            onClick={() =>
+                              setExpandedActionsByEventId((prev) => ({
+                                ...prev,
+                                [e.id]: !prev[e.id],
+                              }))
+                            }
+                            className="w-full px-6 py-3 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-white hover:border-white/20 transition"
+                          >
+                            {actionsExpanded ? "Fechar opções" : "Opções"}
+                          </button>
+                          <div
+                            id={actionsId}
+                            className={
+                              actionsExpanded
+                                ? "mt-2 flex flex-col gap-2"
+                                : "hidden"
+                            }
+                          >
+                            {renderActions({ fullWidth: true })}
+                          </div>
+                        </div>
+
+                        <div className="hidden sm:flex sm:flex-row gap-2 sm:items-center">
+                          {renderActions({ fullWidth: false })}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {isAdmin && isEditing && (
@@ -468,6 +664,7 @@ export function AgendaTab(props: {
                           value={editDate}
                           onChange={setEditDate}
                           disabled={savingEdit}
+                          min={todayYmd}
                         />
                       </div>
                       <div className="sm:col-span-1">
@@ -491,6 +688,23 @@ export function AgendaTab(props: {
                           disabled={savingEdit}
                           className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-4 text-xs font-bold focus:outline-none focus:border-cyan-500/50 disabled:opacity-60"
                         />
+                        {!savingEdit && editLocationSuggestions.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {editLocationSuggestions.map((loc) => (
+                              <button
+                                key={loc}
+                                type="button"
+                                onClick={() => {
+                                  setEditLocation(loc);
+                                  rememberLocation(loc);
+                                }}
+                                className="px-3 py-2 rounded-2xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/45 hover:text-cyan-300 hover:border-cyan-500/30 transition"
+                              >
+                                {loc}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <div className="sm:col-span-1">
                         <label className="block text-[9px] font-black uppercase tracking-widest text-white/30 mb-2">
@@ -512,7 +726,7 @@ export function AgendaTab(props: {
                         <div className="px-4 py-3 rounded-2xl bg-black/30 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/50">
                           {(() => {
                             const iso = buildIsoFromParts(editDate, editTime);
-                            const loc = editLocation.trim();
+                            const loc = normalizeLocation(editLocation);
                             if (!iso || !loc)
                               return "Preencha data, horário e local";
                             const min = Math.max(
@@ -537,11 +751,19 @@ export function AgendaTab(props: {
                           disabled={savingEdit}
                           onClick={async () => {
                             if (savingEdit) return;
+                            const d = editDate.trim();
+                            if (d && d < todayYmd) {
+                              toast.warning(
+                                "Não é possível agendar para dias anteriores.",
+                                { title: "Data inválida" },
+                              );
+                              return;
+                            }
                             const startsAt = buildIsoFromParts(
                               editDate,
                               editTime,
                             );
-                            const loc = editLocation.trim();
+                            const loc = normalizeLocation(editLocation);
                             const min = Math.max(
                               2,
                               Math.min(100, Number(editMinPeople) || 10),
@@ -566,6 +788,7 @@ export function AgendaTab(props: {
                                 location: loc,
                                 minPeople: min,
                               });
+                              rememberLocation(loc);
                               setEditingEventId(null);
                               toast.success("Agendamento atualizado.", {
                                 title: "Agenda",
