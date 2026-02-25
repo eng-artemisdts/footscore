@@ -29,13 +29,19 @@ export function DatePicker(props: {
   onChange: (value: string) => void;
   disabled?: boolean;
   placeholder?: string;
+  min?: string;
 }) {
-  const { value, onChange, disabled, placeholder } = props;
+  const { value, onChange, disabled, placeholder, min } = props;
   const [open, setOpen] = useState(false);
 
   const selected = useMemo(() => parseYmdLocal(value), [value]);
-  const label = selected
-    ? format(selected, "PPP", { locale: ptBR })
+  const minDate = useMemo(() => (min ? parseYmdLocal(min) : null), [min]);
+  const effectiveSelected =
+    selected && minDate && selected.getTime() < minDate.getTime()
+      ? null
+      : selected;
+  const label = effectiveSelected
+    ? format(effectiveSelected, "PPP", { locale: ptBR })
     : (placeholder ?? "Selecionar data");
 
   const setValueFromDate = (dt: Date) => {
@@ -58,7 +64,7 @@ export function DatePicker(props: {
           <span
             className={[
               "min-w-0 truncate",
-              selected ? "text-white/80" : "text-white/35",
+              effectiveSelected ? "text-white/80" : "text-white/35",
             ].join(" ")}
           >
             {label}
@@ -76,7 +82,10 @@ export function DatePicker(props: {
         >
           <DayPicker
             mode="single"
-            selected={selected ?? undefined}
+            selected={effectiveSelected ?? undefined}
+            defaultMonth={(effectiveSelected ?? minDate ?? new Date()) as Date}
+            fromDate={minDate ?? undefined}
+            disabled={minDate ? { before: minDate } : undefined}
             onSelect={(dt) => {
               if (!dt) return;
               setOpen(false);

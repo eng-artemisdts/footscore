@@ -9,13 +9,13 @@ const ACCOUNTS_KEY = "futscore_accounts";
 
 export const AuthPage: React.FC = () => {
   const setUser = useAuthStore((state) => state.setUser);
-  const [mode, setMode] = useState<"login" | "signup" | "phone">("login");
+  const [mode, setMode] = useState<"login" | "signup" | "recover">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
 
   const getAccounts = (): any[] => {
     const data = localStorage.getItem(ACCOUNTS_KEY);
@@ -36,36 +36,28 @@ export const AuthPage: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-
-    if (mode === "phone") {
-      const accounts = getAccounts();
-      let found = accounts.find((acc: any) => acc.phone === phone);
-      if (!found) {
-        found = {
-          id: Math.random().toString(36).slice(2),
-          email: `${phone}@phone.com`,
-          password: "phone-login",
-          name: `Craque ${phone.slice(-4)}`,
-          phone,
-          role: "ADMIN",
-        };
-        saveAccount(found);
-      }
-      loginLocal({
-        id: found.id,
-        email: found.email,
-        name: found.name,
-        role: "ADMIN",
-        plan: "free",
-        subscriptionStatus: "free",
-        stripeCustomerId: null,
-      });
-      setLoading(false);
-      return;
-    }
+    setInfo(null);
 
     if (supabase) {
       try {
+        if (mode === "recover") {
+          const redirectTo = `${getRedirectOrigin()}/auth/callback?next=/auth/recover`;
+          const { error: err } = await supabase.auth.resetPasswordForEmail(
+            email.trim(),
+            { redirectTo },
+          );
+          if (err) {
+            setError(err.message || "Não foi possível enviar o e-mail de recuperação.");
+            setLoading(false);
+            return;
+          }
+          setInfo(
+            "Se esse e-mail estiver cadastrado, enviamos um link para redefinir sua senha.",
+          );
+          setLoading(false);
+          return;
+        }
+
         if (mode === "signup") {
           const { data, error: err } = await supabase.auth.signUp({
             email: email.trim(),
@@ -117,6 +109,11 @@ export const AuthPage: React.FC = () => {
     }
 
     const accounts = getAccounts();
+    if (mode === "recover") {
+      setError("Recuperação de senha disponível apenas para contas com Supabase.");
+      setLoading(false);
+      return;
+    }
     if (mode === "signup") {
       if (accounts.some((acc: any) => acc.email === email)) {
         setError("E-mail já cadastrado.");
@@ -284,8 +281,9 @@ export const AuthPage: React.FC = () => {
               onClick={() => {
                 setMode("login");
                 setError(null);
+                setInfo(null);
               }}
-              className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${mode === "login" ? "bg-white/10 text-white" : "text-white/20"}`}
+              className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${mode === "login" || mode === "recover" ? "bg-white/10 text-white" : "text-white/20"}`}
             >
               Entrar
             </button>
@@ -293,6 +291,7 @@ export const AuthPage: React.FC = () => {
               onClick={() => {
                 setMode("signup");
                 setError(null);
+                setInfo(null);
               }}
               className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${mode === "signup" ? "bg-white/10 text-white" : "text-white/20"}`}
             >
@@ -303,6 +302,11 @@ export const AuthPage: React.FC = () => {
           {error && (
             <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-[10px] font-black uppercase tracking-widest text-center animate-in fade-in slide-in-from-top-2">
               {error}
+            </div>
+          )}
+          {info && (
+            <div className="mb-6 p-4 bg-cyan-500/10 border border-cyan-500/20 rounded-2xl text-cyan-200 text-[10px] font-black uppercase tracking-widest text-center animate-in fade-in slide-in-from-top-2">
+              {info}
             </div>
           )}
 
@@ -323,50 +327,51 @@ export const AuthPage: React.FC = () => {
               </div>
             )}
 
-            {mode === "phone" ? (
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-white/20 uppercase tracking-widest ml-1">
+                E-mail
+              </label>
+              <input
+                type="email"
+                required
+                value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (info) setInfo(null);
+                  }}
+                className="w-full bg-black/40 border border-white/5 rounded-2xl py-3.5 px-6 text-sm focus:outline-none focus:border-cyan-500/50 transition-all placeholder:text-white/10"
+                placeholder="voce@exemplo.com"
+              />
+            </div>
+
+            {mode !== "recover" && (
               <div className="space-y-2">
                 <label className="text-[9px] font-black text-white/20 uppercase tracking-widest ml-1">
-                  Número do Celular
+                  Senha
                 </label>
                 <input
-                  type="tel"
+                  type="password"
                   required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="w-full bg-black/40 border border-white/5 rounded-2xl py-3.5 px-6 text-sm focus:outline-none focus:border-cyan-500/50 transition-all placeholder:text-white/10"
-                  placeholder="(00) 00000-0000"
+                  placeholder="••••••••"
                 />
               </div>
-            ) : (
-              <>
-                <div className="space-y-2">
-                  <label className="text-[9px] font-black text-white/20 uppercase tracking-widest ml-1">
-                    E-mail
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-black/40 border border-white/5 rounded-2xl py-3.5 px-6 text-sm focus:outline-none focus:border-cyan-500/50 transition-all placeholder:text-white/10"
-                    placeholder="voce@exemplo.com"
-                  />
-                </div>
+            )}
 
-                <div className="space-y-2">
-                  <label className="text-[9px] font-black text-white/20 uppercase tracking-widest ml-1">
-                    Senha
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-black/40 border border-white/5 rounded-2xl py-3.5 px-6 text-sm focus:outline-none focus:border-cyan-500/50 transition-all placeholder:text-white/10"
-                    placeholder="••••••••"
-                  />
-                </div>
-              </>
+            {mode === "login" && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("recover");
+                  setError(null);
+                  setInfo(null);
+                }}
+                className="text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-cyan-300 transition-colors text-left pl-1"
+              >
+                Esqueci minha senha
+              </button>
             )}
 
             <button
@@ -376,69 +381,75 @@ export const AuthPage: React.FC = () => {
             >
               {loading ? (
                 <span className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+              ) : mode === "recover" ? (
+                "Enviar link"
               ) : mode === "login" ? (
                 "Acessar Elenco"
-              ) : mode === "signup" ? (
-                "Finalizar Cadastro"
               ) : (
-                "Entrar com SMS"
+                "Finalizar Cadastro"
               )}
             </button>
+
+            {mode === "recover" && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("login");
+                  setError(null);
+                  setInfo(null);
+                }}
+                className="w-full bg-white/5 border border-white/10 text-white/60 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-white/10 hover:text-white/80 transition"
+              >
+                Voltar
+              </button>
+            )}
           </form>
 
-          <div className="relative mb-8">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/5"></div>
-            </div>
-            <div className="relative flex justify-center text-[8px] uppercase font-black tracking-widest">
-              <span className="bg-[#0c1220] px-3 text-white/20">
-                Ou continue com
-              </span>
-            </div>
-          </div>
+          {mode !== "recover" && (
+            <>
+              <div className="relative mb-8">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-white/5"></div>
+                </div>
+                <div className="relative flex justify-center text-[8px] uppercase font-black tracking-widest">
+                  <span className="bg-[#0c1220] px-3 text-white/20">
+                    Ou continue com
+                  </span>
+                </div>
+              </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={handleGoogleLogin}
-              disabled={loading}
-              className="flex items-center justify-center gap-3 py-3 bg-white/5 border border-white/5 rounded-2xl hover:bg-white/10 transition-all group disabled:opacity-50"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24">
-                <path
-                  fill="#EA4335"
-                  d="M12 5.04c1.94 0 3.51.68 4.75 1.81l3.55-3.55C18.1 1.31 15.3 0 12 0 7.31 0 3.25 2.69 1.25 6.64l4.13 3.2C6.38 7.39 8.95 5.04 12 5.04z"
-                />
-                <path
-                  fill="#4285F4"
-                  d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58l3.86 3C22.21 18.9 23.49 15.89 23.49 12.27z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.38 14.36c-.24-.73-.38-1.52-.38-2.36s.14-1.63.38-2.36L1.25 6.64C.45 8.24 0 10.06 0 12s.45 3.76 1.25 5.36l4.13-3z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.47 1.15-4.07 1.15-3.05 0-5.62-2.35-6.62-5.52l-4.13 3C3.25 21.31 7.31 24 12 24z"
-                />
-              </svg>
-              <span className="text-[9px] font-black uppercase text-white/40 group-hover:text-white transition-colors">
-                Google
-              </span>
-            </button>
-            <button
-              onClick={() => {
-                setMode(mode === "phone" ? "login" : "phone");
-                setError(null);
-              }}
-              className={`flex items-center justify-center gap-3 py-3 border rounded-2xl transition-all group ${mode === "phone" ? "bg-cyan-500/20 border-cyan-500/50" : "bg-white/5 border-white/5 hover:bg-white/10"}`}
-            >
-              <span className="text-sm">📱</span>
-              <span className="text-[9px] font-black uppercase text-white/40 group-hover:text-white transition-colors">
-                Celular
-              </span>
-            </button>
-          </div>
+              <div className="grid grid-cols-1 gap-3">
+                <button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  disabled={loading}
+                  className="flex items-center justify-center gap-3 py-3 bg-white/5 border border-white/5 rounded-2xl hover:bg-white/10 transition-all group disabled:opacity-50"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24">
+                    <path
+                      fill="#EA4335"
+                      d="M12 5.04c1.94 0 3.51.68 4.75 1.81l3.55-3.55C18.1 1.31 15.3 0 12 0 7.31 0 3.25 2.69 1.25 6.64l4.13 3.2C6.38 7.39 8.95 5.04 12 5.04z"
+                    />
+                    <path
+                      fill="#4285F4"
+                      d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58l3.86 3C22.21 18.9 23.49 15.89 23.49 12.27z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.38 14.36c-.24-.73-.38-1.52-.38-2.36s.14-1.63.38-2.36L1.25 6.64C.45 8.24 0 10.06 0 12s.45 3.76 1.25 5.36l4.13-3z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.47 1.15-4.07 1.15-3.05 0-5.62-2.35-6.62-5.52l-4.13 3C3.25 21.31 7.31 24 12 24z"
+                    />
+                  </svg>
+                  <span className="text-[9px] font-black uppercase text-white/40 group-hover:text-white transition-colors">
+                    Google
+                  </span>
+                </button>
+              </div>
+            </>
+          )}
         </div>
 
         <p className="mt-8 text-center text-[9px] font-bold text-white/10 uppercase tracking-widest leading-loose">
