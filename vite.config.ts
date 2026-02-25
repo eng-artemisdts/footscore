@@ -15,6 +15,7 @@ export default defineConfig(({ mode }) => {
         VitePWA({
           injectRegister: 'auto',
           registerType: 'autoUpdate',
+          includeAssets: ['apple-touch-icon.png', 'pwa-192.png', 'pwa-512.png', 'logo.svg'],
           manifest: {
             name: 'FutScore — Manager',
             short_name: 'FutScore',
@@ -26,9 +27,20 @@ export default defineConfig(({ mode }) => {
             background_color: '#05080f',
             icons: [
               {
-                src: '/logo.svg',
-                sizes: 'any',
-                type: 'image/svg+xml',
+                src: '/pwa-192.png',
+                sizes: '192x192',
+                type: 'image/png',
+              },
+              {
+                src: '/pwa-512.png',
+                sizes: '512x512',
+                type: 'image/png',
+              },
+              {
+                src: '/pwa-512.png',
+                sizes: '512x512',
+                type: 'image/png',
+                purpose: 'maskable',
               },
             ],
           },
