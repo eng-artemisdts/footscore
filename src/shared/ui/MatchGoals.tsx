@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Clock, Minus, Plus, RotateCcw, X } from "lucide-react";
+import { clampInt } from "@/shared/number";
 
 type MatchTimerMode = "stopwatch" | "timer";
 
@@ -36,10 +37,6 @@ type PersistedGoalsStateV2 = {
 
 function generateId() {
   return Math.random().toString(36).slice(2, 10);
-}
-
-function clampInt(n: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, n));
 }
 
 function safeNumber(value: unknown) {
@@ -100,7 +97,7 @@ function readGoals(storageKey: string): PersistedGoalsStateV2 | null {
   try {
     const raw = localStorage.getItem(storageKey);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<PersistedGoalsStateV1 & PersistedGoalsStateV2>;
+    const parsed = JSON.parse(raw) as Partial<PersistedGoalsStateV1> | Partial<PersistedGoalsStateV2>;
     if (!parsed || !Array.isArray(parsed.events)) return null;
     const logOpen = typeof parsed.logOpen === "boolean" ? parsed.logOpen : false;
     const events = parsed.events
@@ -111,7 +108,7 @@ function readGoals(storageKey: string): PersistedGoalsStateV2 | null {
         matchTimeMs: typeof e.matchTimeMs === "number" && Number.isFinite(e.matchTimeMs) ? clampInt(Math.floor(e.matchTimeMs), 0, 365 * 24 * 60 * 60 * 1000) : null,
         createdAtIso: e.createdAtIso,
       }));
-    const enabledFromV2 = typeof (parsed as PersistedGoalsStateV2).enabled === "boolean" ? (parsed as PersistedGoalsStateV2).enabled : null;
+    const enabledFromV2 = typeof (parsed as Partial<PersistedGoalsStateV2>).enabled === "boolean" ? (parsed as Partial<PersistedGoalsStateV2>).enabled as boolean : null;
     const enabled = enabledFromV2 ?? events.length > 0;
     return { v: 2, enabled, events, logOpen };
   } catch {
