@@ -97,6 +97,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  avatarUrl?: string | null;
   role: 'ADMIN' | 'PLAYER';
   plan: Plan;
   subscriptionStatus: SubscriptionStatus;

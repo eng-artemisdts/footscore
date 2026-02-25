@@ -7,6 +7,7 @@ import { createCheckoutSession, createPortalSession } from "@/modules/billing/st
 import { supabase } from "@/shared/supabase";
 import { env } from "@/shared/env";
 import { joinPelada } from "@/modules/peladas/joinPelada";
+import { leavePelada } from "@/modules/peladas/leavePelada";
 import { CreatePeladaModal } from "./components/CreatePeladaModal";
 import { deletePelada, savePelada, usePeladas } from "./hooks/usePeladasStorage";
 import { useToast } from "@/shared/ui/ToastProvider";
@@ -19,23 +20,29 @@ const SWIPE_ACTION_WIDTH_PX = 96;
 type PeladaRowProps = {
   pelada: Pelada;
   canDelete: boolean;
+  canLeave: boolean;
   isOpen: boolean;
   setOpenPeladaId: (id: string | null) => void;
-  anyDeleting: boolean;
+  anyMutating: boolean;
   deletingThis: boolean;
+  leavingThis: boolean;
   onSelect: (pelada: Pelada) => void;
   onDelete: (pelada: Pelada) => void;
+  onLeave: (pelada: Pelada) => void;
 };
 
 const PeladaRow: React.FC<PeladaRowProps> = ({
   pelada,
   canDelete,
+  canLeave,
   isOpen,
   setOpenPeladaId,
-  anyDeleting,
+  anyMutating,
   deletingThis,
+  leavingThis,
   onSelect,
   onDelete,
+  onLeave,
 }) => {
   const [offset, setOffset] = useState(isOpen ? SWIPE_ACTION_WIDTH_PX : 0);
   const [dragging, setDragging] = useState(false);
@@ -63,7 +70,7 @@ const PeladaRow: React.FC<PeladaRowProps> = ({
         <div
           className="absolute inset-y-0 right-0 flex items-stretch z-0"
           style={{
-            pointerEvents: anyDeleting ? "none" : "auto",
+            pointerEvents: anyMutating ? "none" : "auto",
             opacity: Math.min(1, offset / 16),
           }}
         >
@@ -74,7 +81,7 @@ const PeladaRow: React.FC<PeladaRowProps> = ({
               e.stopPropagation();
               onDelete(pelada);
             }}
-            disabled={anyDeleting}
+            disabled={anyMutating}
             className="w-[96px] flex items-center justify-center bg-red-500/20 text-red-200 hover:bg-red-500/30 transition disabled:opacity-40 disabled:cursor-not-allowed rounded-r-2xl"
             aria-label={`Excluir pelada ${pelada.name}`}
             title="Excluir"
@@ -89,7 +96,7 @@ const PeladaRow: React.FC<PeladaRowProps> = ({
         type="button"
         onPointerDown={(e) => {
           if (!canDelete) return;
-          if (anyDeleting) return;
+          if (anyMutating) return;
           suppressClickRef.current = false;
           dragRef.current = {
             pointerId: e.pointerId,
@@ -183,12 +190,39 @@ const PeladaRow: React.FC<PeladaRowProps> = ({
             Entrar na pelada →
           </span>
         </div>
-        <span
-          className="text-white/20 group-hover:text-cyan-400 text-xl leading-none transition-colors shrink-0"
-          aria-hidden
-        >
-          →
-        </span>
+        <div className="flex items-center gap-2 shrink-0">
+          {canLeave && (
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={(e) => {
+                e.stopPropagation();
+                onLeave(pelada);
+              }}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter" && e.key !== " ") return;
+                e.preventDefault();
+                e.stopPropagation();
+                onLeave(pelada);
+              }}
+              aria-label={`Sair da pelada ${pelada.name}`}
+              className={[
+                "px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest border transition",
+                leavingThis
+                  ? "bg-white/5 text-white/30 border-white/10"
+                  : "bg-red-500/10 text-red-200 border-red-500/20 hover:bg-red-500/15 hover:border-red-500/30",
+              ].join(" ")}
+            >
+              {leavingThis ? "..." : "Sair"}
+            </span>
+          )}
+          <span
+            className="text-white/20 group-hover:text-cyan-400 text-xl leading-none transition-colors"
+            aria-hidden
+          >
+            →
+          </span>
+        </div>
       </button>
     </div>
   );
@@ -206,6 +240,7 @@ export const PeladaSelectPage: React.FC = () => {
   const [logoutLoading, setLogoutLoading] = useState(false);
   const [peladasReloadKey, setPeladasReloadKey] = useState(0);
   const [deletingPeladaId, setDeletingPeladaId] = useState<string | null>(null);
+  const [leavingPeladaId, setLeavingPeladaId] = useState<string | null>(null);
   const [openPeladaId, setOpenPeladaId] = useState<string | null>(null);
   const mountedRef = useRef(true);
 
@@ -338,6 +373,47 @@ export const PeladaSelectPage: React.FC = () => {
       });
     } finally {
       if (mountedRef.current) setDeletingPeladaId(null);
+    }
+  };
+
+  const clearPeladaLocalCache = (peladaId: string) => {
+    const id = (peladaId ?? "").trim();
+    if (!id) return;
+    try {
+      localStorage.removeItem(`pelada_players_${id}`);
+      localStorage.removeItem(`pelada_draw_${id}`);
+      localStorage.removeItem(`pelada_draw_history_${id}`);
+      localStorage.removeItem(`pelada_location_cache_v1_${id}`);
+      localStorage.removeItem(`pelada_agenda_seen_v1_${id}`);
+    } catch {}
+  };
+
+  const handleLeave = async (pelada: Pelada) => {
+    if (leavingPeladaId) return;
+    if (pelada.userId === user.id) {
+      toast.info("Você é o admin desta pelada.", { title: "Peladas" });
+      return;
+    }
+    const ok = await confirm({
+      title: "Sair da pelada",
+      message: `Tem certeza que deseja sair da pelada "${pelada.name}"?`,
+      confirmText: "Sair",
+      cancelText: "Cancelar",
+    });
+    if (!ok) return;
+
+    setLeavingPeladaId(pelada.id);
+    try {
+      await leavePelada(pelada.id, user.id);
+      clearPeladaLocalCache(pelada.id);
+      toast.success(`Você saiu da pelada "${pelada.name}".`, { title: "Peladas" });
+      setPeladasReloadKey((k) => k + 1);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível sair da pelada.", {
+        title: "Falha",
+      });
+    } finally {
+      if (mountedRef.current) setLeavingPeladaId(null);
     }
   };
 
@@ -546,12 +622,15 @@ export const PeladaSelectPage: React.FC = () => {
                     <PeladaRow
                       pelada={p}
                       canDelete={p.userId === user.id}
+                      canLeave={p.userId !== user.id}
                       isOpen={openPeladaId === p.id}
                       setOpenPeladaId={setOpenPeladaId}
-                      anyDeleting={!!deletingPeladaId}
+                      anyMutating={!!deletingPeladaId || !!leavingPeladaId}
                       deletingThis={deletingPeladaId === p.id}
+                      leavingThis={leavingPeladaId === p.id}
                       onSelect={handleSelect}
                       onDelete={handleDelete}
+                      onLeave={handleLeave}
                     />
                   </li>
                 ))}

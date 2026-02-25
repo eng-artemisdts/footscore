@@ -82,6 +82,9 @@ export const PeladaPage: React.FC = () => {
   const [presentIds, setPresentIds] = useState<string[]>([]);
   const [drawHistoryOpen, setDrawHistoryOpen] = useState(false);
   const [drawActionsOpen, setDrawActionsOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [avatarBroken, setAvatarBroken] = useState(false);
+  const [playerModalTab, setPlayerModalTab] = useState<'resumo' | 'atributos' | 'foto'>('atributos');
   const dragRef = useRef<{ playerId: string; fromTeamIndex: number } | null>(null);
   const [draggingPlayerId, setDraggingPlayerId] = useState<string | null>(null);
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
@@ -96,7 +99,14 @@ export const PeladaPage: React.FC = () => {
     setEditingTeamId(null);
     setEditingTeamName('');
     setDrawActionsOpen(false);
+    setMobileMenuOpen(false);
+    setAvatarBroken(false);
   }, [pelada?.id]);
+
+  useEffect(() => {
+    if (!selectedPlayer) return;
+    setPlayerModalTab('atributos');
+  }, [selectedPlayer?.id]);
 
   const presentPlayers = useMemo(() => {
     if (!presentIds.length) return [];
@@ -323,7 +333,7 @@ export const PeladaPage: React.FC = () => {
             </Link>
           </div>
 
-          <nav className="flex items-center gap-0.5 sm:gap-1 bg-white/5 p-1 rounded-xl sm:rounded-2xl">
+          <nav className="hidden sm:flex items-center gap-0.5 sm:gap-1 bg-white/5 p-1 rounded-xl sm:rounded-2xl">
             {(['dashboard', 'players', 'draw', 'events'] as const).map((tab) => (
               <button
                 key={tab}
@@ -344,12 +354,13 @@ export const PeladaPage: React.FC = () => {
               type="button"
               onClick={handleShare}
               disabled={shareLoading}
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-cyan-400 hover:border-cyan-500/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              aria-label={shareLoading ? 'Gerando link' : shareCopied ? 'Link copiado' : 'Compartilhar'}
+              className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-cyan-400 hover:border-cyan-500/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {shareLoading ? (
                 <>
                   <span className="w-3 h-3 border-2 border-white/20 border-t-white/70 rounded-full animate-spin" />
-                  Gerando...
+                  <span className="hidden sm:inline">Gerando...</span>
                 </>
               ) : shareCopied ? (
                 <>
@@ -357,9 +368,18 @@ export const PeladaPage: React.FC = () => {
                 </>
               ) : (
                 <>
-                  <span>🔗</span> Compartilhar
+                  <span>🔗</span>
+                  <span className="hidden sm:inline">Compartilhar</span>
                 </>
               )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="Abrir menu"
+              className="sm:hidden w-10 h-10 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-cyan-300 hover:border-cyan-500/30 transition inline-flex items-center justify-center"
+            >
+              ☰
             </button>
             <button
               onClick={handleLogout}
@@ -371,6 +391,100 @@ export const PeladaPage: React.FC = () => {
           </div>
         </div>
       </header>
+
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-[60] sm:hidden">
+          <div
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          <div className="absolute top-0 right-0 h-full w-[86%] max-w-xs bg-[#0c1220] border-l border-white/10 shadow-2xl p-4 flex flex-col">
+            <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.03] border border-white/10 mb-4">
+              <div className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
+                {user?.avatarUrl && !avatarBroken ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt={user.name}
+                    className="w-full h-full object-cover"
+                    onError={() => setAvatarBroken(true)}
+                    draggable={false}
+                  />
+                ) : (
+                  <span className="font-black text-sm text-white/70">
+                    {(user?.name?.trim()?.[0] || user?.email?.trim()?.[0] || "U").toUpperCase()}
+                  </span>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80 truncate">
+                  {user?.name || "Usuário"}
+                </div>
+                <div className="text-[10px] font-bold text-white/40 truncate">
+                  {user?.email || "—"}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                aria-label="Fechar menu"
+                className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white hover:border-white/20 transition inline-flex items-center justify-center text-2xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <div className="min-w-0">
+                <div className="text-[9px] font-black uppercase tracking-[0.2em] text-white/30 truncate">
+                  {t['app.name']} — {pelada.name}
+                </div>
+                <div className="text-lg font-black tracking-tight uppercase text-white/90">Menu</div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              {(['dashboard', 'players', 'draw', 'events'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => {
+                    setActiveTab(tab);
+                    setMobileMenuOpen(false);
+                  }}
+                  className={[
+                    "w-full text-left px-4 py-3 rounded-2xl border font-black uppercase tracking-[0.2em] text-[10px] transition",
+                    activeTab === tab
+                      ? "bg-white/10 border-cyan-500/30 text-cyan-300"
+                      : "bg-white/5 border-white/10 text-white/60 hover:text-white hover:border-white/20",
+                  ].join(" ")}
+                >
+                  {t[`${tab}.title`] || tab}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-white/5 space-y-2">
+              <Link
+                to="/pelada"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-[0.2em] text-white/60 hover:text-cyan-300 hover:border-cyan-500/30 transition"
+              >
+                Trocar pelada
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  handleLogout();
+                }}
+                className="w-full text-left px-4 py-3 rounded-2xl bg-red-500/10 border border-red-500/20 text-[10px] font-black uppercase tracking-[0.2em] text-red-300 hover:bg-red-500 hover:text-black transition"
+              >
+                Sair
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10 relative z-10">
         {activeTab === 'dashboard' && (
@@ -872,10 +986,68 @@ export const PeladaPage: React.FC = () => {
             }}
           />
 
-          <div className="relative bg-[#0c1220] border border-white/10 rounded-[30px] sm:rounded-[60px] w-full max-w-6xl max-h-[96vh] overflow-hidden flex flex-col md:flex-row shadow-2xl animate-in zoom-in-95 duration-400">
-            <div className="w-full md:w-[42%] p-6 sm:p-12 bg-gradient-to-b from-white/[0.04] to-transparent flex flex-col items-center border-b md:border-b-0 md:border-r border-white/5 overflow-y-auto custom-scrollbar">
+          <div className="relative bg-[#0c1220] border border-white/10 rounded-[26px] sm:rounded-[60px] w-full max-w-6xl max-h-[100svh] sm:max-h-[96vh] overflow-hidden flex flex-col md:flex-row shadow-2xl animate-in zoom-in-95 duration-400">
+            <div className="md:hidden sticky top-0 z-20 bg-[#0c1220]/95 backdrop-blur-xl border-b border-white/10">
+              <div className="px-4 pt-4 pb-3 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
+                    {selectedPlayer.primaryPosition} • OVR {selectedPlayer.overall}
+                  </div>
+                  <div className="text-xl font-black tracking-tight uppercase truncate text-white/90">
+                    {selectedPlayer.nick}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void closeSelectedPlayer()}
+                  className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 text-white/70 hover:text-white hover:border-white/20 transition inline-flex items-center justify-center text-2xl leading-none shrink-0"
+                  aria-label="Fechar"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="px-4 pb-4">
+                <div className="grid grid-cols-3 gap-2 bg-white/5 border border-white/10 rounded-2xl p-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setPlayerModalTab('resumo')}
+                    className={[
+                      "px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.18em] transition",
+                      playerModalTab === "resumo" ? "bg-white/10 text-cyan-300" : "text-white/50 hover:text-white/80",
+                    ].join(" ")}
+                  >
+                    Resumo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPlayerModalTab('atributos')}
+                    className={[
+                      "px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.18em] transition",
+                      playerModalTab === "atributos" ? "bg-white/10 text-cyan-300" : "text-white/50 hover:text-white/80",
+                    ].join(" ")}
+                  >
+                    Atributos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPlayerModalTab('foto')}
+                    disabled={!isAdmin}
+                    className={[
+                      "px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.18em] transition",
+                      !isAdmin ? "opacity-40 cursor-not-allowed text-white/40" : "",
+                      playerModalTab === "foto" ? "bg-white/10 text-cyan-300" : "text-white/50 hover:text-white/80",
+                    ].join(" ")}
+                  >
+                    Foto
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="hidden md:flex w-full md:w-[42%] p-6 sm:p-12 bg-gradient-to-b from-white/[0.04] to-transparent flex-col items-center border-b md:border-b-0 md:border-r border-white/5 overflow-y-auto custom-scrollbar">
               <div className="w-full aspect-[3/4] max-w-[200px] sm:max-w-[280px] mb-6 sm:mb-12 shadow-2xl">
-                <PlayerCard player={selectedPlayer} isAdmin={isAdmin} />
+                <PlayerCard player={selectedPlayer} isAdmin={isAdmin} sport={pelada.sport} />
               </div>
 
               <div className="w-full max-w-[240px] sm:max-w-[320px] aspect-square mb-6 sm:mb-12">
@@ -919,7 +1091,69 @@ export const PeladaPage: React.FC = () => {
               )}
             </div>
 
-            <div className="w-full md:w-[58%] p-6 sm:p-12 overflow-y-auto custom-scrollbar">
+            <div className="w-full md:w-[58%] p-4 sm:p-12 overflow-y-auto custom-scrollbar">
+              <div className="md:hidden">
+                {playerModalTab === 'resumo' && (
+                  <div className="space-y-4">
+                    <div className="w-full max-w-[170px] mx-auto shadow-2xl">
+                      <PlayerCard player={selectedPlayer} isAdmin={isAdmin} sport={pelada.sport} variant="compact" />
+                    </div>
+                    <div className="w-full max-w-[260px] mx-auto aspect-square">
+                      <RadarChart sport={pelada.sport} attributes={selectedPlayer.attributes} color="#22d3ee" />
+                    </div>
+                    {!isAdmin && (
+                      <div className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] text-center">
+                        Somente o admin pode editar jogadores
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {playerModalTab === 'foto' && (
+                  <div className="space-y-3">
+                    {isAdmin ? (
+                      <>
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          className="hidden"
+                          accept="image/*"
+                          onChange={(e) => handlePhotoUpload(e.target.files?.[0])}
+                        />
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          className="w-full py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-cyan-500 hover:text-black transition-all flex items-center justify-center gap-2"
+                        >
+                          <span>📷</span> {t['photo.upload']}
+                        </button>
+                        {selectedPlayer.photoUrl && (
+                          <button
+                            onClick={handleRemovePhoto}
+                            className="w-full py-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-[10px] font-black uppercase tracking-widest text-red-400 hover:bg-red-500 hover:text-black transition-all flex items-center justify-center gap-2"
+                          >
+                            <span>🗑️</span> Remover foto
+                          </button>
+                        )}
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder={t['photo.link']}
+                            className="w-full py-4 bg-black/30 border border-white/5 rounded-2xl text-[10px] font-bold px-12 focus:outline-none focus:border-cyan-500/50 transition-all text-white/80"
+                            onBlur={(e) => handlePhotoLink(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handlePhotoLink((e.target as HTMLInputElement).value)}
+                          />
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 opacity-30">🔗</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="py-16 text-center text-white/20 font-black text-xl tracking-tighter uppercase">
+                        Apenas admin
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <div className="flex justify-between items-start mb-8 sm:mb-16">
                 <div className="flex-1 pr-4">
                   {isAdmin ? (
@@ -937,7 +1171,7 @@ export const PeladaPage: React.FC = () => {
                     </h2>
                   )}
                   {!isAdmin && (
-                    <div className="text-[9px] sm:text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-4 sm:mb-6">
+                    <div className="hidden md:block text-[9px] sm:text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-4 sm:mb-6">
                       Somente o admin pode editar jogadores
                     </div>
                   )}
@@ -991,7 +1225,11 @@ export const PeladaPage: React.FC = () => {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 sm:gap-x-16 gap-y-8 sm:gap-y-12 mb-12 sm:mb-20">
+              <div className={["grid grid-cols-1 sm:grid-cols-2 gap-x-8 sm:gap-x-16 gap-y-8 sm:gap-y-12 mb-12 sm:mb-20", "md:block", "md:opacity-100", "md:pointer-events-auto", "md:select-auto", playerModalTab !== "atributos" ? "md:block" : ""].join(" ")}>
+                <div className={playerModalTab !== "atributos" ? "md:block hidden" : ""} />
+              </div>
+
+              <div className={playerModalTab === "atributos" ? "grid grid-cols-1 sm:grid-cols-2 gap-x-8 sm:gap-x-16 gap-y-8 sm:gap-y-12 mb-12 sm:mb-20" : "hidden md:grid md:grid-cols-1 sm:grid-cols-2 md:gap-x-8 sm:gap-x-16 md:gap-y-8 sm:gap-y-12 md:mb-12 sm:mb-20"}>
                 {sportSchema.attributeKeys.map((key) => (
                   <div key={key} className="group">
                     <div className="flex justify-between items-center mb-3 sm:mb-4">

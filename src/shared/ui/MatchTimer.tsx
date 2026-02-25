@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Pause, Play, RotateCcw, Timer, X } from "lucide-react";
 import { NumberStepper } from "@/shared/ui/NumberStepper";
+import { clampInt } from "@/shared/number";
 
 type MatchTimerMode = "stopwatch" | "timer";
 
@@ -14,10 +15,6 @@ type PersistedMatchTimerState = {
   running: boolean;
   startedAtMs: number | null;
 };
-
-function clampInt(n: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, n));
-}
 
 function safeNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import { Clock } from "lucide-react";
+import { clampInt } from "@/shared/number";
 
 function pad2(n: number) {
   return String(n).padStart(2, "0");
@@ -20,10 +21,6 @@ function parseHm(value: string): { h: number; m: number } | null {
 
 function toHm(h: number, m: number) {
   return `${pad2(h)}:${pad2(m)}`;
-}
-
-function clampInt(n: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, n));
 }
 
 function nowHmRounded(stepMinutes: number) {
